@@ -3,9 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Camera/CameraComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GodHand.generated.h"
+
+struct FInputActionValue;
+class UInputAction;
+class UInputMappingContext;
+class UCameraComponent;
 
 UCLASS()
 class TRANSCENDET_LIFE_API AGodHand : public APawn
@@ -27,6 +31,16 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+protected:
+	// Adding the Mapping Context
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UInputMappingContext* MappingContext;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UInputAction* MoveWorldAction;
+
+	void MoveWorld(const FInputActionValue& Value);
+	
 private:
 	/**
 	 * @brief Mesh of the player being dispayed
@@ -34,6 +48,8 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent* PlayerMesh;
 
+	
+	
 	/**
 	 * @brief Camera to view the scene
 	 */
