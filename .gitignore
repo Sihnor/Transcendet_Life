@@ -12,3 +12,10 @@ Saved
 *.suo
 *.xcodeproj
 *.xcworkspace
+
+# The HoloLens Platform
+Platforms/HoloLens/Config
+
+# The Rider aut generated folder
+.idea
+Binaries/Developer/RiderLink
