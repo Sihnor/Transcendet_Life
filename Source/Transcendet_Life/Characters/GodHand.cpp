@@ -55,13 +55,14 @@ void AGodHand::BeginPlay() {
 		}
 	}
 
-	// Get the all Actor from 
+	// Get the all Actor from World
 	this->GetRotaingWorldFormAllActors();
 }
 
 // Called every frame
 void AGodHand::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
 }
 
 void AGodHand::GetRotaingWorldFormAllActors() {
@@ -89,85 +90,25 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
 }
 
 void AGodHand::MoveWorld(const FInputActionValue& Value) {
-	// TODO: Es gibt noch ein Bug bei der Bewegung da der Yaw Winkel sich aendert selbst wenn nur z.B. der Pitch Winkel veraendert werden soll. 
-
-	
+	// Check if Object is Valid
 	if (!this->RotatingObject) {
 		return;
 	}
 	
-	const FVector2d CurrentValue = Value.Get<FVector2d>();
+	// Convert Paramter in a 2D Vector
+	const FVector2D CurrentValue = Value.Get<FVector2D>();
 	
-	const FVector FreieAchse = FVector(0,0,1);
-	
-	float Phi  = PI/180 * CurrentValue.X;
-	
-	FQuat NewQuaternion = FQuat(sin(Phi/2) * FreieAchse.X,sin(Phi/2) * FreieAchse.Y,sin(Phi/2) * FreieAchse.Z, cos(Phi/2));
-	
-	//UE_LOG(LogTemp, Warning, TEXT("AkuellesQuat.W: %f"), AktuellesQuat.W);
-	//UE_LOG(LogTemp, Warning, TEXT("Phi: %f"), Phi);
-	//UE_LOG(LogTemp, Warning, TEXT("cos(PhiHalf): %f"), cos(PhiHalf));
-	//UE_LOG(LogTemp, Warning, TEXT("sin(PhiHalf) * FreieAchse.Z: %f"), sin(PhiHalf) * FreieAchse.Z);
+	constexpr float RotationSpeed = 0.5f;
 
-	this->RotatingObject->AddActorLocalRotation(NewQuaternion, false, nullptr, ETeleportType::None);
+	
+	const float RotationDeltaYaw = CurrentValue.X  * RotationSpeed * GetWorld()->GetDeltaSeconds();
+	const float RotationDeltaPitch = (CurrentValue.Y * -1) * RotationSpeed * GetWorld()->GetDeltaSeconds();
+
+	// Calculate the Quaternion for the Rotations based on the Deltas
+	const FQuat YawRotation = FQuat(FVector::UpVector, RotationDeltaYaw); 
+	const FQuat PitchRotation = FQuat(FVector::RightVector, RotationDeltaPitch);
+	
+	const FQuat CombinedRotation = YawRotation * PitchRotation;
+	
+	this->RotatingObject->AddActorWorldRotation(CombinedRotation.Rotator());
 }
-
-/*
- * const float Factor = CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed;
-	float RollFactor = 0;
-	float PitchFactor = 0;
-	float ScaleOfRotation = 0.0;
-
-	// Beide Roll und Pitch muessen Positive sein
-	if (NewRotation.Yaw >= 0 && NewRotation.Yaw < 90) {
-		ScaleOfRotation = NewRotation.Yaw / 90.0;
-
-		RollFactor = Factor * (ScaleOfRotation);
-		PitchFactor = Factor * (1 - ScaleOfRotation);
-		
-		//NewRotation.Roll += CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (ScaleOfRotation);
-		//NewRotation.Pitch += CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (1 - ScaleOfRotation);
-	}
-
-	// Roll muss Positive und Pitch muss NEgative drehen
-	if (NewRotation.Yaw >= 90 && NewRotation.Yaw < 180) {
-		ScaleOfRotation = (NewRotation.Yaw - 90.0) / 90.0;
-
-		RollFactor  = Factor * (1 - ScaleOfRotation);
-		PitchFactor = Factor * (ScaleOfRotation);
-		
-		//NewRotation.Roll += CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (1 - ScaleOfRotation);
-		//NewRotation.Pitch -= CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (ScaleOfRotation);
-	}
-
-	// Roll und PItch mussen NEgative Drehen
-	if (NewRotation.Yaw >= -180 && NewRotation.Yaw < -90) {
-		ScaleOfRotation = (NewRotation.Yaw * -1 - 90.0) / 90.0;
-
-		RollFactor  = Factor *  (1 - ScaleOfRotation);
-		PitchFactor = Factor *  (ScaleOfRotation);
-
-		//NewRotation.Roll -= CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (1 -ScaleOfRotation);
-		//NewRotation.Pitch -= CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (ScaleOfRotation);
-	}
-
-	// Roll muss NEgative und Pitch muss Posisive Gedreht werden
-	if (NewRotation.Yaw >= -90 && NewRotation.Yaw < 0) {
-		ScaleOfRotation = (NewRotation.Yaw * -1) / 90.0;
-
-		RollFactor  = Factor *  (ScaleOfRotation);
-		PitchFactor = Factor *  (1 - ScaleOfRotation);
-		
-		//NewRotation.Roll -= CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (ScaleOfRotation);
-		//NewRotation.Pitch += CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed * (1 -ScaleOfRotation);
-	}
-	
-
-	NewRotation.Roll += RollFactor;
-	NewRotation.Pitch += PitchFactor;
-
-	
-	NewRotation.Yaw += CurrentValue.X * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed;
-
-	UE_LOG(LogTemp, Warning, TEXT("Yaw.Achse: %f"), NewRotation.Yaw)
- */
