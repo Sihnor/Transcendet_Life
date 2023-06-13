@@ -14,8 +14,8 @@ Saved
 *.xcworkspace
 
 # The HoloLens Platform
-Platforms/HoloLens/Config
+Platforms\HoloLens
 
 # The Rider aut generated folder
 .idea
-Binaries/Developer/RiderLink
+Plugins/Developer/RiderLink
