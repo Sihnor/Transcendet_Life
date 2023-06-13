@@ -97,12 +97,23 @@ void AGodHand::MoveWorld(const FInputActionValue& Value) {
 	}
 	
 	const FVector2d CurrentValue = Value.Get<FVector2d>();
-	FRotator NewRotation = this->RotatingObject->GetActorRotation();
+	
+	const FVector FreieAchse = FVector(0,0,1);
+	
+	float Phi  = PI/180 * CurrentValue.X;
+	
+	FQuat NewQuaternion = FQuat(sin(Phi/2) * FreieAchse.X,sin(Phi/2) * FreieAchse.Y,sin(Phi/2) * FreieAchse.Z, cos(Phi/2));
+	
+	//UE_LOG(LogTemp, Warning, TEXT("AkuellesQuat.W: %f"), AktuellesQuat.W);
+	//UE_LOG(LogTemp, Warning, TEXT("Phi: %f"), Phi);
+	//UE_LOG(LogTemp, Warning, TEXT("cos(PhiHalf): %f"), cos(PhiHalf));
+	//UE_LOG(LogTemp, Warning, TEXT("sin(PhiHalf) * FreieAchse.Z: %f"), sin(PhiHalf) * FreieAchse.Z);
 
-	
-	
-		
-	const float Factor = CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed;
+	this->RotatingObject->AddActorLocalRotation(NewQuaternion, false, nullptr, ETeleportType::None);
+}
+
+/*
+ * const float Factor = CurrentValue.Y * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed;
 	float RollFactor = 0;
 	float PitchFactor = 0;
 	float ScaleOfRotation = 0.0;
@@ -157,5 +168,6 @@ void AGodHand::MoveWorld(const FInputActionValue& Value) {
 
 	
 	NewRotation.Yaw += CurrentValue.X * GetWorld()->GetDeltaSeconds() * this->RotationObjectSpeed;
-	this->RotatingObject->SetActorRotation(NewRotation);
-}
+
+	UE_LOG(LogTemp, Warning, TEXT("Yaw.Achse: %f"), NewRotation.Yaw)
+ */
