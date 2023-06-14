@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 
 
+
 // Sets default values
 AGodHand::AGodHand() {
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -26,9 +27,10 @@ AGodHand::AGodHand() {
 	this->PlayerMesh->SetRelativeScale3D(FVector(0.05));
 	this->PlayerMesh->SetupAttachment(this->Root);
 
-	// Attach a Springarm for the Camera
+	// Attach a SpringArm for the Camera
 	this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComp"));
-	this->SpringArm->SetRelativeRotation(FRotator(-30, 0, 0));
+	//this->SpringArm->SetRelativeRotation(FRotator(-30, 0, 0));
+	this->SpringArm->SetRelativeRotation(FRotator(0, 0, 0));
 	this->SpringArm->TargetArmLength = 150;
 	this->SpringArm->SetupAttachment(this->Root);
 
@@ -59,51 +61,53 @@ void AGodHand::BeginPlay() {
 	}
 
 	// Get the all Actor from World
-	this->GetRotaingWorldFormAllActors();
+	this->GetRotatingWorldFormAllActors();
 }
 
 // Called every frame
 void AGodHand::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	// Get the Current Vierport
-	UGameViewportClient* ViewportClient = GEngine->GameViewport;
-	
-	if (ViewportClient) {
+
+
+	if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
 		// Get the Mouse Position from the Viewport
 		FVector2D MousePosition;
-
-		if (bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition)) {
-			if (UWorld* World = GetWorld()) {
-				const APlayerController* PlayerController = Cast<APlayerController>(this->GetController());
-
-				// Get the World Location and the Directrion
-				FVector WorldLocation;
-				FVector WorldDirection;
-				bool bDeprojectSuccess = PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
-
-				if (bDeprojectSuccess) {
-					const FVector OffsetPlayerMesh = FVector(160, 0, -90);
-					this->PlayerMesh->SetWorldLocation(WorldLocation);
-					this->PlayerMesh->AddRelativeLocation(OffsetPlayerMesh);
-					
-					UE_LOG(LogTemp, Error, TEXT("World Position X: %f"), WorldLocation.X);
-					UE_LOG(LogTemp, Error, TEXT("World Position Y: %f"), WorldLocation.Y);
-					UE_LOG(LogTemp, Error, TEXT("World Position Z: %f"), WorldLocation.Z);
-					UE_LOG(LogTemp, Error, TEXT("Player Mesh Position X: %f"), this->PlayerMesh->GetRelativeLocation().X);
-					UE_LOG(LogTemp, Error, TEXT("Player Mesh Position Y: %f"), this->PlayerMesh->GetRelativeLocation().Y);
-					UE_LOG(LogTemp, Error, TEXT("Player Mesh Position Z: %f"), this->PlayerMesh->GetRelativeLocation().Z);
-				}
-
-			}
-			
-		}
 		
-	}
+		bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition);
+		if (bMousePositionValid) {
+			FVector2D ViewportSize;
+			ViewportClient->GetViewportSize(ViewportSize);
 
+			// Clamping the mouse position to prevent the mesh from moving out too far of the viewport 
+			MousePosition.X = FMath::Clamp(MousePosition.X, 0.05 * ViewportSize.X, 0.95 * ViewportSize.X);
+			MousePosition.Y = FMath::Clamp(MousePosition.Y, 0.1 * ViewportSize.Y, 0.95 * ViewportSize.Y);
+
+			// Get the width and height inside the field of View from the Camera to the end of the SpringArm
+			const float HalfWidthFromFOV = (tan((this->PlayerCamera->FieldOfView/2) * PI/180) * this->SpringArm->TargetArmLength);
+			const float HeightFromFOV = 2 * HalfWidthFromFOV * (ViewportSize.Y / ViewportSize.X);
+
+			// Calculate the start points for the movement for the mesh
+			const float StartPointFromFOVAndSpringArmForWidth  = this->SpringArm->GetComponentLocation().Y - HalfWidthFromFOV;
+			const float StartPointFromFOVAndSpringArmForHeight = this->SpringArm->GetComponentLocation().Z - HeightFromFOV/2;
+
+			// Create and get the percentage of the mouse position from the Viewport width and height. 
+			FVector2D MousePositionPercentage;
+			MousePositionPercentage.X =  (100/ViewportSize.X) * (MousePosition.X/100);
+			MousePositionPercentage.Y =  (100/ViewportSize.Y) * (MousePosition.Y/100);
+			
+			//  Set the Vector of the MeshLocation to the value of the percentage of the width and height
+			FVector3d NewMeshLocation;
+			NewMeshLocation.Y = (MousePositionPercentage.X * 2 * HalfWidthFromFOV) + StartPointFromFOVAndSpringArmForWidth;
+			NewMeshLocation.X = this->SpringArm->GetComponentLocation().X;
+			NewMeshLocation.Z = ((1- MousePositionPercentage.Y) * HeightFromFOV) + StartPointFromFOVAndSpringArmForHeight; // 1- cause to invert the movement
+			
+			this->PlayerMesh->SetWorldLocation(NewMeshLocation);
+		}
+	}
 }
 
-void AGodHand::GetRotaingWorldFormAllActors() {
+void AGodHand::GetRotatingWorldFormAllActors() {
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AStaticMeshActor::StaticClass(), FoundActors);
 	for (AActor* Actor : FoundActors) {
@@ -133,11 +137,10 @@ void AGodHand::MoveWorld(const FInputActionValue& Value) {
 		return;
 	}
 	
-	// Convert Paramter in a 2D Vector
+	// Convert Parameter in a 2D Vector
 	const FVector2D CurrentValue = Value.Get<FVector2D>();
 	
 	constexpr float RotationSpeed = 0.5f;
-
 	
 	const float RotationDeltaYaw = CurrentValue.X  * RotationSpeed * GetWorld()->GetDeltaSeconds();
 	const float RotationDeltaPitch = (CurrentValue.Y * -1) * RotationSpeed * GetWorld()->GetDeltaSeconds();
