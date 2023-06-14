@@ -10,7 +10,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 AGodHand::AGodHand() {
@@ -21,21 +20,25 @@ AGodHand::AGodHand() {
 	this->Root = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
 	SetRootComponent(this->Root);
 
+	// Setup the PlayerMesh
 	this->PlayerMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PlayerMeshComp"));
 	this->PlayerMesh->SetRelativeRotation(FRotator3d(0, 180, 0));
 	this->PlayerMesh->SetRelativeScale3D(FVector(0.05));
 	this->PlayerMesh->SetupAttachment(this->Root);
 
+	// Attach a Springarm for the Camera
 	this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComp"));
 	this->SpringArm->SetRelativeRotation(FRotator(-30, 0, 0));
 	this->SpringArm->TargetArmLength = 150;
 	this->SpringArm->SetupAttachment(this->Root);
 
+	// Added a Light to see something
 	this->RectLightComponent = CreateDefaultSubobject<URectLightComponent>(TEXT("Light"));
 	this->RectLightComponent->SetRelativeLocation(FVector(100, 0, 120));
 	this->RectLightComponent->Intensity = 10;
 	this->RectLightComponent->SetupAttachment(this->SpringArm);
 
+	// Setup the PlayerCamera
 	this->PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCameraComp"));
 	this->PlayerCamera->SetupAttachment(this->SpringArm);
 	this->PlayerCamera->FieldOfView = 40.0f;
@@ -62,6 +65,41 @@ void AGodHand::BeginPlay() {
 // Called every frame
 void AGodHand::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
+	// Get the Current Vierport
+	UGameViewportClient* ViewportClient = GEngine->GameViewport;
+	
+	if (ViewportClient) {
+		// Get the Mouse Position from the Viewport
+		FVector2D MousePosition;
+
+		if (bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition)) {
+			if (UWorld* World = GetWorld()) {
+				const APlayerController* PlayerController = Cast<APlayerController>(this->GetController());
+
+				// Get the World Location and the Directrion
+				FVector WorldLocation;
+				FVector WorldDirection;
+				bool bDeprojectSuccess = PlayerController->DeprojectMousePositionToWorld(WorldLocation, WorldDirection);
+
+				if (bDeprojectSuccess) {
+					const FVector OffsetPlayerMesh = FVector(160, 0, -90);
+					this->PlayerMesh->SetWorldLocation(WorldLocation);
+					this->PlayerMesh->AddRelativeLocation(OffsetPlayerMesh);
+					
+					UE_LOG(LogTemp, Error, TEXT("World Position X: %f"), WorldLocation.X);
+					UE_LOG(LogTemp, Error, TEXT("World Position Y: %f"), WorldLocation.Y);
+					UE_LOG(LogTemp, Error, TEXT("World Position Z: %f"), WorldLocation.Z);
+					UE_LOG(LogTemp, Error, TEXT("Player Mesh Position X: %f"), this->PlayerMesh->GetRelativeLocation().X);
+					UE_LOG(LogTemp, Error, TEXT("Player Mesh Position Y: %f"), this->PlayerMesh->GetRelativeLocation().Y);
+					UE_LOG(LogTemp, Error, TEXT("Player Mesh Position Z: %f"), this->PlayerMesh->GetRelativeLocation().Z);
+				}
+
+			}
+			
+		}
+		
+	}
 
 }
 
