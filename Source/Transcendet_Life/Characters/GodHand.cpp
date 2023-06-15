@@ -88,8 +88,8 @@ void AGodHand::Tick(float DeltaTime) {
 			const float HeightFromFOV = 2 * HalfWidthFromFOV * (ViewportSize.Y / ViewportSize.X);
 
 			// Calculate the start points for the movement for the mesh
-			const float StartPointFromFOVAndSpringArmForWidth  = this->SpringArm->GetComponentLocation().Y - HalfWidthFromFOV;
-			const float StartPointFromFOVAndSpringArmForHeight = this->SpringArm->GetComponentLocation().Z - HeightFromFOV/2;
+			const float StartPointFromFOVAndSpringArmForWidth  = this->SpringArm->GetRelativeLocation().Y - HalfWidthFromFOV;
+			const float StartPointFromFOVAndSpringArmForHeight = this->SpringArm->GetRelativeLocation().Z - HeightFromFOV/2;
 
 			// Create and get the percentage of the mouse position from the Viewport width and height. 
 			FVector2D MousePositionPercentage;
@@ -99,10 +99,10 @@ void AGodHand::Tick(float DeltaTime) {
 			//  Set the Vector of the MeshLocation to the value of the percentage of the width and height
 			FVector3d NewMeshLocation;
 			NewMeshLocation.Y = (MousePositionPercentage.X * 2 * HalfWidthFromFOV) + StartPointFromFOVAndSpringArmForWidth;
-			NewMeshLocation.X = this->SpringArm->GetComponentLocation().X;
+			NewMeshLocation.X = this->SpringArm->GetRelativeLocation().X;
 			NewMeshLocation.Z = ((1- MousePositionPercentage.Y) * HeightFromFOV) + StartPointFromFOVAndSpringArmForHeight; // 1- cause to invert the movement
-			
-			this->PlayerMesh->SetWorldLocation(NewMeshLocation);
+
+			this->PlayerMesh->SetRelativeLocation(NewMeshLocation);
 		}
 	}
 }
