@@ -95,7 +95,7 @@ private:
 	/**
 	 * @brief this function is called in the BeginPLay to get The Low Poly World to rotate later.
 	 */
-	void GetRotaingWorldFormAllActors();
+	void GetRotatingWorldFormAllActors();
 
 
 
