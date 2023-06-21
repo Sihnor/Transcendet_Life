@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Transcendet_Life/Characters/Professions/Profession.h"
 #include "Lumberjack.generated.h"
 
 
 UCLASS()
-class TRANSCENDET_LIFE_API ALumberjack : public ACharacter {
+class TRANSCENDET_LIFE_API ALumberjack : public AProfession {
   GENERATED_BODY()
 
   //////////////////////////////////////////////////////////////////////////// Input
@@ -73,5 +74,11 @@ protected:
 
   // Called to bind functionality to input
   virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+public:
+  // Getter function for the FP Mesh
+  USkeletalMeshComponent* GetMesh1P() const { return  this->Mesh1P; }
+  // Getter function for the Camera Component
+  UCameraComponent* GetFirstPersonCameraComponent()const {return this->FirstPersonCameraComponent;}
 
 };
