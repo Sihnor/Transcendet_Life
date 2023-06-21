@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "PickUp_Tool.generated.h"
 
+class UTP_ToolComponent;
 class UTP_PickUpComponent;
 
 UCLASS()
@@ -23,8 +24,8 @@ protected:
 
 public:
   // SkeletalMesh
-  UPROPERTY(EditAnywhere)
-  USkeletalMeshComponent* TP_Tool;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  UTP_ToolComponent* TP_Tool;
 
   UPROPERTY(EditAnywhere, BlueprintReadWrite)
   UTP_PickUpComponent* TP_PickUp;

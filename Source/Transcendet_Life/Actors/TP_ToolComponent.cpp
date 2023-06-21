@@ -20,13 +20,12 @@ void UTP_ToolComponent::BeginPlay()
 {
   Super::BeginPlay();
 
-  // ...
   
 }
 
-void UTP_ToolComponent::AttachTool(ALumberjack* TargetCharacter) {
+void UTP_ToolComponent::AttachTool(AProfession* TargetCharacter) {
   this->Character = TargetCharacter;
-  if (this->Character != nullptr) {
+  if (this->Character == nullptr) {
     return;
   }
 
@@ -35,7 +34,7 @@ void UTP_ToolComponent::AttachTool(ALumberjack* TargetCharacter) {
   AttachToComponent(this->Character->GetMesh1P(), AttachmentRules, FName(TEXT("GripPoint")));
 
   // switch bHasAxe for the character
-  this->Character->SetHasAxe(true);
+  this->Character->SetHasTool(true);
 
   // Setup action binding
   if (const APlayerController* PlayerController = Cast<APlayerController>(this->Character->GetController()))
@@ -47,7 +46,7 @@ void UTP_ToolComponent::AttachTool(ALumberjack* TargetCharacter) {
 
     // Bind the Action
     if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerController->InputComponent)) {
-      EnhancedInputComponent->BindAction(IA_UtilizeAction, ETriggerEvent::Triggered, this, &UTP_ToolComponent::Use);
+      EnhancedInputComponent->BindAction(UtilizeAction, ETriggerEvent::Triggered, this, &UTP_ToolComponent::Use);
     }
   }
   
