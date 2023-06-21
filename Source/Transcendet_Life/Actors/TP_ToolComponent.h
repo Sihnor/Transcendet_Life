@@ -7,7 +7,6 @@
 #include "TP_ToolComponent.generated.h"
 
 
-class ALumberjack;
 
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TRANSCENDET_LIFE_API UTP_ToolComponent : public USkeletalMeshComponent
@@ -32,12 +31,13 @@ public:
   class UInputMappingContext* UtilizeMappingContext;
 
   // Utilize Action Input
-  class UInputAction* IA_UtilizeAction;
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+  class UInputAction* UtilizeAction;
 
 public:
   // Attached the actor to a Lumberjack
   UFUNCTION(BlueprintCallable, Category="Tool")
-  void AttachTool(ALumberjack* TargetCharacter);
+  void AttachTool(class AProfession* TargetCharacter);
 
   // Use the tool
   UFUNCTION(BlueprintCallable, Category="Tool")
@@ -49,7 +49,7 @@ protected:
 
 private:
   // The Character holding this tool
-  ALumberjack* Character;
+  AProfession* Character;
   
 };
 

@@ -4,13 +4,14 @@
 #include "PickUp_Tool.h"
 
 #include "TP_PickUpComponent.h"
+#include "TP_ToolComponent.h"
 
 
 // Sets default values
 APickUp_Tool::APickUp_Tool() {
 
   // Setup the hierarchy
-  this->TP_Tool   = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TP_Weapon"));
+  this->TP_Tool = CreateDefaultSubobject<UTP_ToolComponent>(TEXT("TP_Weapon"));
   this->SetRootComponent(this->TP_Tool);
 
   this->TP_PickUp = CreateDefaultSubobject<UTP_PickUpComponent>(TEXT("TP_PickUp"));
