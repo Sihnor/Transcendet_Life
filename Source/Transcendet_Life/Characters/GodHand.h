@@ -84,13 +84,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	USkeletalMeshComponent* PlayerMesh;
 
-	/**
-	 * @brief The Light over the PLayer to see something
-	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RectLight")
-	URectLightComponent* RectLightComponent;
-
-
 private:
 	/**
 	 * @brief this function is called in the BeginPLay to get The Low Poly World to rotate later.

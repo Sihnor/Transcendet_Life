@@ -33,12 +33,6 @@ AGodHand::AGodHand() {
   this->SpringArm->TargetArmLength = 150;
   this->SpringArm->SetupAttachment(this->Root);
 
-  // Added a Light to see something
-  this->RectLightComponent = CreateDefaultSubobject<URectLightComponent>(TEXT("Light"));
-  this->RectLightComponent->SetRelativeLocation(FVector(100, 0, 120));
-  this->RectLightComponent->Intensity = 10;
-  this->RectLightComponent->SetupAttachment(this->SpringArm);
-
   // Setup the PlayerCamera
   this->PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCameraComp"));
   this->PlayerCamera->SetupAttachment(this->SpringArm);
