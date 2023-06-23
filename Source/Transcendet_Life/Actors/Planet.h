@@ -3,19 +3,28 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+
 #include "Planet.generated.h"
 
+class AGravityCharacter;
 class URectLightComponent;
 class USphereComponent;
+
+// Declaration of the delegate that will be called when there is a new Actor is spawning
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpawn, AActor*, GravityActor);
 
 UCLASS()
 class TRANSCENDET_LIFE_API APlanet : public AActor {
   GENERATED_BODY()
 
 public:
+  UPROPERTY(BlueprintAssignable, Category="Gravity")
+  FOnSpawn EventOnSpawn;
+  
   // Sets default values for this actor's properties
   APlanet();
+
+  virtual void Tick(float DeltaSeconds) override;
 
   UPROPERTY(EditAnywhere, BlueprintReadWrite)
   USphereComponent* Center;
@@ -50,6 +59,10 @@ protected:
   virtual void BeginPlay() override;
 
 private:
+
+  // An Array of Actors that will be affected
+  UPROPERTY()
+  TArray<AGravityCharacter*> CharactersAffectedOnGravity;
 
  
 

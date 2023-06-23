@@ -5,13 +5,13 @@
 
 #include "Components/RectLightComponent.h"
 #include "Components/SphereComponent.h"
-#include "Math/TransformCalculus3D.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Transcendet_Life/Characters/Professions/Profession.h"
 
 
 // Sets default values
 APlanet::APlanet() {
-
   constexpr int WorldScale = 5.0f;
 
   this->Center = CreateDefaultSubobject<USphereComponent>(TEXT("Center"));
@@ -64,12 +64,45 @@ APlanet::APlanet() {
 void APlanet::BeginPlay() {
   Super::BeginPlay();
 
+  // Getting all Characters that are affected on gravity
+  TArray<AActor*> FoundCharacters;
+  UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGravityCharacter::StaticClass(), FoundCharacters);
+  for (AActor* Actor : FoundCharacters) {
+    this->CharactersAffectedOnGravity.Add(Cast<AGravityCharacter>(Actor));
+  }
   
-  //this->GravityField->IsOverlappingActor()
-  
+
 }
 
+void APlanet::Tick(float DeltaSeconds) {
+  for (AGravityCharacter* Character: this->CharactersAffectedOnGravity) {
+    const FVector WorldLocation = this->GetActorLocation();
+    const FVector CharacterLocation = Character->GetActorLocation();
 
+    // Calculate the Vector from World Center to Character and Normalize it
+    const FVector NormalizeWorldCharacterLocation = (CharacterLocation - WorldLocation).GetSafeNormal();
 
+    // Get a vector in front of the character (From the Center of the planet to in-front of the character)
+    const FVector WorldToInFrontOfCharacter = Character->GetActorForwardVector() + CharacterLocation;
+    
+    // Normalize the Vector with points from center of the planet to in-front of the character
+    const FVector NormalizeWorldInFrontOfCharacter = (WorldToInFrontOfCharacter - WorldLocation).GetSafeNormal();
+    
 
+    // Calculate the distance from the center of the planet and the character
+    const float DistanceCharacterWorld = sqrt(pow((CharacterLocation - WorldLocation).X, 2) + pow((CharacterLocation - WorldLocation).Y, 2) + pow((CharacterLocation - WorldLocation).Z, 2));
 
+    
+    // Calculate the vector from the center to in-front of the character
+    const FVector DestinationCharacter = NormalizeWorldInFrontOfCharacter * DistanceCharacterWorld;
+    
+
+    //  Normalize the vektor from the character to the destination
+    const FVector NormalizeCharacterToDestination = (DestinationCharacter - CharacterLocation).GetSafeNormal();
+    
+    // Calculate the Charater Rotation in Relation to the Looking direction and the axis from character to center
+    const FRotator CharacterRotator = FRotationMatrix::MakeFromXZ(NormalizeCharacterToDestination, NormalizeWorldCharacterLocation).Rotator();
+    Character->SetActorRotation(CharacterRotator);
+    
+  }
+}

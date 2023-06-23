@@ -7,6 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 // Sets default values
@@ -39,6 +40,10 @@ void AProfession::BeginPlay() {
       Subsystem->AddMappingContext(this->DefaultMappingContext, 0);
     }
   }
+
+  UCharacterMovementComponent* CharacterMovementComponent = this->GetCharacterMovement();
+  CharacterMovementComponent->SetPlaneConstraintNormal(FVector(0.0,0.0,1.0));
+  
 }
 
 // Called every frame

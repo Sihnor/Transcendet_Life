@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "Transcendet_Life/BaseClasses/GravityCharacter.h"
 #include "Profession.generated.h"
 
 UENUM(BlueprintType)
@@ -13,7 +13,7 @@ enum class EAvailableTools : uint8 {
 
 
 UCLASS()
-class TRANSCENDET_LIFE_API AProfession : public ACharacter {
+class TRANSCENDET_LIFE_API AProfession : public AGravityCharacter {
   GENERATED_BODY()
 
 public:
