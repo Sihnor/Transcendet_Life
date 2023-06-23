@@ -7,6 +7,7 @@
 #include "GodHand.generated.h"
 
 
+class APlanet;
 class URectLightComponent;
 class AStaticMeshActor;
 struct FInputActionValue;
@@ -35,8 +36,8 @@ protected:
 	 * @brief The Pointer for the Object what will be Rotated
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
-	class APlanet* RotatingObject;
-
+	APlanet* RotatingObject;
+	
 	/**
 	 * @brief The Rotation Speed for the world
 	 */

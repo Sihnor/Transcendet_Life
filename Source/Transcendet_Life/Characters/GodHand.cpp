@@ -6,7 +6,6 @@
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
 #include "Transcendet_Life/Actors/Planet.h"
-#include "Engine/StaticMeshActor.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -113,7 +112,8 @@ void AGodHand::GetRotatingWorldFormAllActors() {
       FString Text = PlanetActor->GetName();
     }
     if (PlanetActor != nullptr && PlanetActor->GetName() == "PlanetActor") {
-      this->RotatingObject = PlanetActor;
+      //this->RotatingObject = PlanetActor;
+
       break;
     }
   }
@@ -147,6 +147,6 @@ void AGodHand::MoveWorld(const FInputActionValue& Value) {
   const FQuat PitchRotation = FQuat(FVector::RightVector, RotationDeltaPitch);
 
   const FQuat CombinedRotation = YawRotation * PitchRotation;
-
+  
   this->RotatingObject->AddActorWorldRotation(CombinedRotation.Rotator());
 }
