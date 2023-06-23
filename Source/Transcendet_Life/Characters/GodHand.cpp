@@ -5,7 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
-#include "Components/RectLightComponent.h"
+#include "Transcendet_Life/Actors/Planet.h"
 #include "Engine/StaticMeshActor.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -106,14 +106,14 @@ void AGodHand::Tick(float DeltaTime) {
 
 void AGodHand::GetRotatingWorldFormAllActors() {
   TArray<AActor*> FoundActors;
-  UGameplayStatics::GetAllActorsOfClass(GetWorld(), AStaticMeshActor::StaticClass(), FoundActors);
+  UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlanet::StaticClass(), FoundActors);
   for (AActor* Actor : FoundActors) {
-    AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(Actor);
-    if (StaticMeshActor != nullptr) {
-      FString Text = StaticMeshActor->GetName();
+    APlanet* PlanetActor = Cast<APlanet>(Actor);
+    if (PlanetActor != nullptr) {
+      FString Text = PlanetActor->GetName();
     }
-    if (StaticMeshActor != nullptr && StaticMeshActor->GetName() == "StaticMeshActor_6") {
-      this->RotatingObject = StaticMeshActor;
+    if (PlanetActor != nullptr && PlanetActor->GetName() == "PlanetActor") {
+      this->RotatingObject = PlanetActor;
       break;
     }
   }

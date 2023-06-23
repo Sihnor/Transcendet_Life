@@ -35,7 +35,7 @@ protected:
 	 * @brief The Pointer for the Object what will be Rotated
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
-	AStaticMeshActor* RotatingObject;
+	class APlanet* RotatingObject;
 
 	/**
 	 * @brief The Rotation Speed for the world
