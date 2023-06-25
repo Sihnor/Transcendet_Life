@@ -5,7 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
-#include "Transcendet_Life/Actors/Planet.h"
+#include "Transcendet_Life/BaseClasses/GravityPlanet.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -105,9 +105,9 @@ void AGodHand::Tick(float DeltaTime) {
 
 void AGodHand::GetRotatingWorldFormAllActors() {
   TArray<AActor*> FoundActors;
-  UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlanet::StaticClass(), FoundActors);
+  UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGravityPlanet::StaticClass(), FoundActors);
   for (AActor* Actor : FoundActors) {
-    APlanet* PlanetActor = Cast<APlanet>(Actor);
+    AGravityPlanet* PlanetActor = Cast<AGravityPlanet>(Actor);
     if (PlanetActor != nullptr) {
       FString Text = PlanetActor->GetName();
     }

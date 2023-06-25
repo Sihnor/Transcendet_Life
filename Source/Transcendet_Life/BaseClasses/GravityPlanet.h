@@ -3,8 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/StaticMeshActor.h"
 
-#include "Planet.generated.h"
+#include "GravityPlanet.generated.h"
 
 class AGravityCharacter;
 class URectLightComponent;
@@ -14,7 +15,7 @@ class USphereComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpawn, AActor*, GravityActor);
 
 UCLASS()
-class TRANSCENDET_LIFE_API APlanet : public AActor {
+class TRANSCENDET_LIFE_API AGravityPlanet : public AStaticMeshActor {
   GENERATED_BODY()
 
 public:
@@ -22,48 +23,24 @@ public:
   FOnSpawn EventOnSpawn;
   
   // Sets default values for this actor's properties
-  APlanet();
+  AGravityPlanet();
 
   virtual void Tick(float DeltaSeconds) override;
 
   UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  USphereComponent* Center;
-
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  UStaticMeshComponent* WorldMesh;
-
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
   USphereComponent* GravityField;
 
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  URectLightComponent* NorthLight;
-  
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  URectLightComponent* SouthLight;
-  
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  URectLightComponent* EastLight;
-  
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  URectLightComponent* WestLight;
-  
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  URectLightComponent* FrontLight;
-  
-  UPROPERTY(EditAnywhere, BlueprintReadWrite)
-  URectLightComponent* BackLight;
-
-  
 protected:
   // Called when the game starts or when spawned
   virtual void BeginPlay() override;
 
 private:
-
   // An Array of Actors that will be affected
   UPROPERTY()
   TArray<AGravityCharacter*> CharactersAffectedOnGravity;
 
- 
+
+private:
+  float Gravitation = -1.0f;
 
 };
