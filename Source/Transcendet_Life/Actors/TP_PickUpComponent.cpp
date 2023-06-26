@@ -2,6 +2,7 @@
 
 
 #include "TP_PickUpComponent.h"
+#include "Transcendet_Life/Characters/Professions/Profession.h"
 
 
 // Sets default values for this component's properties
