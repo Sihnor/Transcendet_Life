@@ -12,6 +12,36 @@ class TRANSCENDET_LIFE_API UGravityMovementComponent : public UFloatingPawnMovem
 	
 	UGravityMovementComponent();
 
+	virtual bool IsCrouching() const override;
+	virtual bool IsFalling() const override;
+	virtual bool IsMovingOnGround() const override;
+	virtual bool IsSwimming() const override;
+	virtual bool IsFlying() const override;
+	virtual void AddInputVector(FVector WorldVector, bool bForce) override;
+
+public:
+	void StartJumping();
+	void StopJumping();
+	bool CanJump();
+	
+	
+	
+	
+	
 
 	
+	void SetPlanetCenter(const FVector& Center);
+	void SetCharacterHasGravity(bool HasGravity);
+	FVector GetPlanetCenter();
+	bool GetCharacterHasGravity();
+
+	bool IsJumping();
+
+private:
+	FVector PlanetCenter = FVector::Zero();
+
+	bool bIsJumping = false;
+	bool bHasGravity = false;
+	float JumpHeight = 100.0f;
+	float StartJumpHeight = 0.0f;
 };

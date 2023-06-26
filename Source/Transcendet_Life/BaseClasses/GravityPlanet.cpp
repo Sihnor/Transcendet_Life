@@ -4,6 +4,7 @@
 #include "GravityPlanet.h"
 
 #include "GravityCharacter.h"
+#include "GravityMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -14,6 +15,7 @@
 AGravityPlanet::AGravityPlanet() {
   constexpr int WorldScale = 5.0f;
 
+  this->GetStaticMeshComponent()->SetRelativeScale3D(FVector(WorldScale));
   this->SetRootComponent(this->GetStaticMeshComponent());
 
   this->GravityField = CreateDefaultSubobject<USphereComponent>(TEXT("GravityField"));
@@ -35,10 +37,9 @@ void AGravityPlanet::BeginPlay() {
     AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
     this->CharactersAffectedOnGravity.Add(Cast<AGravityCharacter>(Character));
     // Setting the Variable for the Planet
-    Character->SetPlanetCenter(this->GetActorLocation());
+    Character->GetGravityMovementComponent()->SetPlanetCenter(this->GetActorLocation());
     //UE_LOG(LogTemp, Warning, TEXT("X:%f Y=%f Z=%f"), this->GetActorLocation().X, this->GetActorLocation().Y, this->GetActorLocation().Z);
-    Character->SetCharacterHasGravity(true);
-    //Character->UpdateGravity();
+    Character->GetGravityMovementComponent()->SetCharacterHasGravity(true);
   }
   
 
@@ -73,6 +74,7 @@ void AGravityPlanet::Tick(float DeltaSeconds) {
     const FRotator CharacterRotator = FRotationMatrix::MakeFromXZ(NormalizeCharacterToDestination, NormalizeWorldCharacterLocation).Rotator();
     Character->SetActorRotation(CharacterRotator);
     Character->GetMovementComponent()->AddInputVector(NormalizeWorldCharacterLocation * Gravitation);
+    
     
   }
 }

@@ -93,7 +93,7 @@ public:
 	
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category=Character, meta=(AllowPrivateAccess = "true"))
-	UFloatingPawnMovement* CharacterMovement;
+	class UGravityMovementComponent* CharacterMovement;
 
 public:
 	/** Returns CapsuleComponent subobject **/
@@ -106,18 +106,8 @@ public:
 	FORCEINLINE class UCameraComponent* GetCamera() const { return this->CameraComponent; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Character")
-	UFloatingPawnMovement* GetFloatingMovementComponent();
+	UGravityMovementComponent* GetGravityMovementComponent();
 
-
-public:
-	void SetPlanetCenter(const FVector& PlanetCenter);
-	void SetCharacterHasGravity(bool HasGravity);
-
-
-private:
-	FVector PlanetCenter;
-	bool bHasGravity;
-
-
+	
 
 };

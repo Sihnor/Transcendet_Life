@@ -4,10 +4,10 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GravityMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/SpringArmComponent.h"
 
 
@@ -43,10 +43,13 @@ AGravityCharacter::AGravityCharacter() {
   this->CameraComponent->bUsePawnControlRotation = false;
   this->CameraComponent->SetupAttachment(this->SpringArm);
 
-  this->CharacterMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("CharacterMovement"));
+  // FIlling up the FloatingPawnMovement
+  //this->CharacterMovement->NavAgentProps.AgentHeight = this->CapsuleComponent->GetScaledCapsuleHalfHeight();
+  //this->CharacterMovement->NavAgentProps.AgentRadius = this->CapsuleComponent->GetScaledCapsuleRadius();
+  this->CharacterMovement = CreateDefaultSubobject<UGravityMovementComponent>(TEXT("CharacterMovement"));
 }
 
-UFloatingPawnMovement* AGravityCharacter::GetFloatingMovementComponent() {
+UGravityMovementComponent* AGravityCharacter::GetGravityMovementComponent() {
   return this->CharacterMovement;
 }
 
@@ -66,7 +69,7 @@ void AGravityCharacter::BeginPlay() {
 void AGravityCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
     // Jumping
-    EnhancedInputComponent->BindAction(this->JumpCharacterAction, ETriggerEvent::Triggered, this, &AGravityCharacter::Jump);
+    EnhancedInputComponent->BindAction(this->JumpCharacterAction, ETriggerEvent::Started, this, &AGravityCharacter::Jump);
     EnhancedInputComponent->BindAction(this->JumpCharacterAction, ETriggerEvent::Completed, this, &AGravityCharacter::StopJumping);
 
     // Look
@@ -98,14 +101,11 @@ void AGravityCharacter::Move(const FInputActionValue& Value) {
   }
 }
 
-void AGravityCharacter::Jump(const FInputActionValue& Value) {}
-
-void AGravityCharacter::StopJumping(const FInputActionValue& Value) {}
-
-void AGravityCharacter::SetPlanetCenter(const FVector& Center) {
-  this->PlanetCenter = Center;
+void AGravityCharacter::Jump(const FInputActionValue& Value) {
+  this->CharacterMovement->StartJumping();
+  
 }
 
-void AGravityCharacter::SetCharacterHasGravity(const bool HasGravity) {
-  this->bHasGravity = HasGravity;
+void AGravityCharacter::StopJumping(const FInputActionValue& Value) {
+  
 }
