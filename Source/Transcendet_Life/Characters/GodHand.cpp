@@ -15,6 +15,8 @@ AGodHand::AGodHand() {
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
 
+  this->SetActorRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
+
   // Setup component hierarchy
   this->Root = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
   SetRootComponent(this->Root);
@@ -64,7 +66,7 @@ void AGodHand::Tick(float DeltaTime) {
     // Get the Mouse Position from the Viewport
     FVector2D MousePosition;
 
-    bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition);
+    const bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition);
     if (bMousePositionValid) {
       FVector2D ViewportSize;
       ViewportClient->GetViewportSize(ViewportSize);
@@ -75,7 +77,7 @@ void AGodHand::Tick(float DeltaTime) {
 
       // Get the width and height inside the field of View from the Camera to the end of the SpringArm
       const float HalfWidthFromFOV = (tan((this->PlayerCamera->FieldOfView / 2) * PI / 180) * this->SpringArm->
-        TargetArmLength);
+                                                                                                    TargetArmLength);
       const float HeightFromFOV = 2 * HalfWidthFromFOV * (ViewportSize.Y / ViewportSize.X);
 
       // Calculate the start points for the movement for the mesh
@@ -125,6 +127,7 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
 
   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
     EnhancedInputComponent->BindAction(this->MoveWorldAction, ETriggerEvent::Triggered, this, &AGodHand::MoveWorld);
+    EnhancedInputComponent->BindAction(this->ZoomWorldAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomWorld);
   }
 }
 
@@ -147,6 +150,28 @@ void AGodHand::MoveWorld(const FInputActionValue& Value) {
   const FQuat PitchRotation = FQuat(FVector::RightVector, RotationDeltaPitch);
 
   const FQuat CombinedRotation = YawRotation * PitchRotation;
-  
+
   this->RotatingObject->AddActorWorldRotation(CombinedRotation.Rotator());
+}
+
+void AGodHand::ZoomWorld(const FInputActionValue& Value) {
+  const FVector StartLocation = this->PlayerMesh->GetComponentLocation();
+  const FVector ShootDirection = this->PlayerMesh->GetForwardVector();
+  const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
+  const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length() * -1.0;
+
+  //if (this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, CollisionParams)){
+  if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
+    constexpr float ZoomScale = 100.0f;
+    float Distance = HitResult.Distance;
+    // Stop before the the Actor will be in the planet
+    if (constexpr float MinZoomDistance = 150.0f; Distance < MinZoomDistance && Value.Get<float>() < 0) {
+      return;
+    }
+    // Stop at a specific distance
+    if (constexpr float MaxZoomDistance = 2500.0f; Distance > MaxZoomDistance && Value.Get<float>() > 0) {
+      return;
+    }
+    this->Root->AddRelativeLocation(this->PlayerMesh->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale);
+  }
 }

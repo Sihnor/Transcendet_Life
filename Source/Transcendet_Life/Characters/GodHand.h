@@ -7,14 +7,6 @@
 #include "GodHand.generated.h"
 
 
-class AGravityPlanet;
-class URectLightComponent;
-class AStaticMeshActor;
-struct FInputActionValue;
-class UInputAction;
-class UInputMappingContext;
-
-
 
 UCLASS()
 class TRANSCENDET_LIFE_API AGodHand : public APawn
@@ -24,19 +16,23 @@ class TRANSCENDET_LIFE_API AGodHand : public APawn
 protected:
 	// Adding the Mapping Context
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputMappingContext* MappingContext;
+	class UInputMappingContext* MappingContext;
 
 	/**
 	 * @brief Move Action for the world 
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* MoveWorldAction;
+	class UInputAction* MoveWorldAction;
+
+	// Input Action to zoom
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta = (AllowPrivateAccess="true"))
+	class UInputAction* ZoomWorldAction;
 
 	/**
 	 * @brief The Pointer for the Object what will be Rotated
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
-	AGravityPlanet* RotatingObject;
+	class AGravityPlanet* RotatingObject;
 	
 	/**
 	 * @brief The Rotation Speed for the world
@@ -58,7 +54,10 @@ public:
 
 protected:
 	/** Called for the MoveWorld Input */
-	void MoveWorld(const FInputActionValue& Value);
+	void MoveWorld(const struct FInputActionValue& Value);
+
+	// Called to zoom
+	void ZoomWorld(const struct FInputActionValue& Value);
 
 protected:
 	// Called to bind functionality to input
@@ -82,7 +81,7 @@ public:
 	/**
 	 * @brief Mesh of the GodHand being dispayed
 	 */
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	USkeletalMeshComponent* PlayerMesh;
 
 private:
