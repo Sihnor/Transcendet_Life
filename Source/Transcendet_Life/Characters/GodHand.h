@@ -54,7 +54,7 @@ public:
 
 protected:
 	/** Called for the MoveWorld Input */
-	void MoveWorld(const struct FInputActionValue& Value);
+	void RotatePlanet(const struct FInputActionValue& Value);
 
 	// Called to zoom
 	void ZoomWorld(const struct FInputActionValue& Value);

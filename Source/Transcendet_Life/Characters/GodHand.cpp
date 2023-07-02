@@ -5,9 +5,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
-#include "Transcendet_Life/BaseClasses/GravityPlanet.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Transcendet_Life/BaseClasses/GravityPlanet.h"
 
 
 // Sets default values
@@ -126,32 +126,18 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
   Super::SetupPlayerInputComponent(PlayerInputComponent);
 
   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
-    EnhancedInputComponent->BindAction(this->MoveWorldAction, ETriggerEvent::Triggered, this, &AGodHand::MoveWorld);
+    EnhancedInputComponent->BindAction(this->MoveWorldAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
     EnhancedInputComponent->BindAction(this->ZoomWorldAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomWorld);
   }
 }
 
-void AGodHand::MoveWorld(const FInputActionValue& Value) {
+void AGodHand::RotatePlanet(const FInputActionValue& Value) {
   // Check if Object is Valid
   if (!this->RotatingObject) {
     return;
   }
 
-  // Convert Parameter in a 2D Vector
-  const FVector2D CurrentValue = Value.Get<FVector2D>();
-
-  constexpr float RotationSpeed = 0.5f;
-
-  const float RotationDeltaYaw = CurrentValue.X * RotationSpeed * GetWorld()->GetDeltaSeconds();
-  const float RotationDeltaPitch = (CurrentValue.Y * -1) * RotationSpeed * GetWorld()->GetDeltaSeconds();
-
-  // Calculate the Quaternion for the Rotations based on the Deltas
-  const FQuat YawRotation = FQuat(FVector::UpVector, RotationDeltaYaw);
-  const FQuat PitchRotation = FQuat(FVector::RightVector, RotationDeltaPitch);
-
-  const FQuat CombinedRotation = YawRotation * PitchRotation;
-
-  this->RotatingObject->AddActorWorldRotation(CombinedRotation.Rotator());
+  this->RotatingObject->RotatePlanet(Value);
 }
 
 void AGodHand::ZoomWorld(const FInputActionValue& Value) {
@@ -163,14 +149,16 @@ void AGodHand::ZoomWorld(const FInputActionValue& Value) {
   //if (this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, CollisionParams)){
   if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
     constexpr float ZoomScale = 100.0f;
+
     float Distance = HitResult.Distance;
     
     // Stop before the the Actor will be in the planet
-    if (constexpr float MinZoomDistance = 150.0f; Distance < MinZoomDistance && Value.Get<float>() < 0) {
+    if (constexpr float MinZoomDistance = 150.0f; Distance + Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() < 0) {
       return;
     }
+    
     // Stop at a specific distance
-    if (constexpr float MaxZoomDistance = 2500.0f; Distance > MaxZoomDistance && Value.Get<float>() > 0) {
+    if (constexpr float MaxZoomDistance = 2500.0f; Distance + Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() > 0) {
       return;
     }
 
