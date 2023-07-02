@@ -164,6 +164,7 @@ void AGodHand::ZoomWorld(const FInputActionValue& Value) {
   if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
     constexpr float ZoomScale = 100.0f;
     float Distance = HitResult.Distance;
+    
     // Stop before the the Actor will be in the planet
     if (constexpr float MinZoomDistance = 150.0f; Distance < MinZoomDistance && Value.Get<float>() < 0) {
       return;
@@ -172,6 +173,12 @@ void AGodHand::ZoomWorld(const FInputActionValue& Value) {
     if (constexpr float MaxZoomDistance = 2500.0f; Distance > MaxZoomDistance && Value.Get<float>() > 0) {
       return;
     }
-    this->Root->AddRelativeLocation(this->PlayerMesh->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale);
+
+    FVector FutureLocation = this->PlayerMesh->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale;
+    const float ScaleFactor = (Distance + FutureLocation.Length() * Value.Get<float>()) / 20;
+
+    this->PlayerMesh->SetRelativeScale3D(FVector(1.0f / ScaleFactor, 1.0f / ScaleFactor, 1.0f / ScaleFactor));
+    
+    this->Root->AddRelativeLocation(FutureLocation);
   }
 }
