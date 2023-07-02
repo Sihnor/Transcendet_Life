@@ -22,11 +22,15 @@ protected:
 	 * @brief Move Action for the world 
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	class UInputAction* MoveWorldAction;
+	class UInputAction* RotatePlanetAction;
 
 	// Input Action to zoom
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta = (AllowPrivateAccess="true"))
-	class UInputAction* ZoomWorldAction;
+	class UInputAction* ZoomPlanetAction;
+
+	// Input Action to zoom
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta = (AllowPrivateAccess="true"))
+	class UInputAction* MoveHandMeshAction;
 
 	/**
 	 * @brief The Pointer for the Object what will be Rotated
@@ -57,7 +61,10 @@ protected:
 	void RotatePlanet(const struct FInputActionValue& Value);
 
 	// Called to zoom
-	void ZoomWorld(const struct FInputActionValue& Value);
+	void ZoomPlanet(const struct FInputActionValue& Value);
+
+	// Called to zoom
+	void MoveHandMesh(const struct FInputActionValue& Value);
 
 protected:
 	// Called to bind functionality to input

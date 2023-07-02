@@ -62,7 +62,84 @@ void AGodHand::BeginPlay() {
 void AGodHand::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
 
-  if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
+  
+
+  FHitResult HitResult;
+  FCollisionQueryParams CollisionParams;
+  FVector Start = this->PlayerMesh->GetComponentLocation();
+  FVector End = this->PlayerMesh->GetForwardVector();
+  this->ActorLineTraceSingle(HitResult, Start, End, ECC_Visibility, CollisionParams);
+  DrawDebugLine(GetWorld(), Start, HitResult.Location, FColor::Red, false, 0.1f, 0, 1.0f);
+}
+
+void AGodHand::GetRotatingWorldFormAllActors() {
+  TArray<AActor*> FoundActors;
+  UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGravityPlanet::StaticClass(), FoundActors);
+  for (AActor* Actor : FoundActors) {
+    AGravityPlanet* PlanetActor = Cast<AGravityPlanet>(Actor);
+    if (PlanetActor != nullptr) {
+      FString Text = PlanetActor->GetName();
+    }
+    if (PlanetActor != nullptr && PlanetActor->GetName() == "PlanetActor") {
+      //this->RotatingObject = PlanetActor;
+
+      break;
+    }
+  }
+}
+
+// Called to bind functionality to input
+void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) {
+  Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+  if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
+    EnhancedInputComponent->BindAction(this->RotatePlanetAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
+    EnhancedInputComponent->BindAction(this->ZoomPlanetAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomPlanet);
+    EnhancedInputComponent->BindAction(this->MoveHandMeshAction, ETriggerEvent::Triggered, this, &AGodHand::MoveHandMesh);
+  }
+}
+
+void AGodHand::RotatePlanet(const FInputActionValue& Value) {
+  // Check if Object is Valid
+  if (!this->RotatingObject) {
+    return;
+  }
+
+  this->RotatingObject->RotatePlanet(Value);
+}
+
+void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
+  const FVector StartLocation = this->PlayerMesh->GetComponentLocation();
+  const FVector ShootDirection = this->PlayerMesh->GetForwardVector();
+  const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
+  const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length() * -1.0;
+
+  if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
+    constexpr float ZoomScale = 100.0f;
+
+    float Distance = HitResult.Distance;
+    
+    // Stop before the the Actor will be in the planet
+    if (constexpr float MinZoomDistance = 150.0f; Distance + Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() < 0) {
+      return;
+    }
+    
+    // Stop at a specific distance
+    if (constexpr float MaxZoomDistance = 2500.0f; Distance + Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() > 0) {
+      return;
+    }
+
+    FVector FutureLocation = this->PlayerMesh->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale;
+    const float ScaleFactor = (Distance + FutureLocation.Length() * Value.Get<float>()) / 20;
+
+    this->PlayerMesh->SetRelativeScale3D(FVector(1.0f / ScaleFactor, 1.0f / ScaleFactor, 1.0f / ScaleFactor));
+    
+    this->Root->AddRelativeLocation(FutureLocation);
+  }
+}
+
+void AGodHand::MoveHandMesh(const FInputActionValue& Value) {
+   if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
     // Get the Mouse Position from the Viewport
     FVector2D MousePosition;
 
@@ -102,71 +179,5 @@ void AGodHand::Tick(float DeltaTime) {
 
       this->PlayerMesh->SetRelativeLocation(NewMeshLocation);
     }
-  }
-}
-
-void AGodHand::GetRotatingWorldFormAllActors() {
-  TArray<AActor*> FoundActors;
-  UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGravityPlanet::StaticClass(), FoundActors);
-  for (AActor* Actor : FoundActors) {
-    AGravityPlanet* PlanetActor = Cast<AGravityPlanet>(Actor);
-    if (PlanetActor != nullptr) {
-      FString Text = PlanetActor->GetName();
-    }
-    if (PlanetActor != nullptr && PlanetActor->GetName() == "PlanetActor") {
-      //this->RotatingObject = PlanetActor;
-
-      break;
-    }
-  }
-}
-
-// Called to bind functionality to input
-void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) {
-  Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-  if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
-    EnhancedInputComponent->BindAction(this->MoveWorldAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
-    EnhancedInputComponent->BindAction(this->ZoomWorldAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomWorld);
-  }
-}
-
-void AGodHand::RotatePlanet(const FInputActionValue& Value) {
-  // Check if Object is Valid
-  if (!this->RotatingObject) {
-    return;
-  }
-
-  this->RotatingObject->RotatePlanet(Value);
-}
-
-void AGodHand::ZoomWorld(const FInputActionValue& Value) {
-  const FVector StartLocation = this->PlayerMesh->GetComponentLocation();
-  const FVector ShootDirection = this->PlayerMesh->GetForwardVector();
-  const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
-  const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length() * -1.0;
-
-  //if (this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, CollisionParams)){
-  if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
-    constexpr float ZoomScale = 100.0f;
-
-    float Distance = HitResult.Distance;
-    
-    // Stop before the the Actor will be in the planet
-    if (constexpr float MinZoomDistance = 150.0f; Distance + Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() < 0) {
-      return;
-    }
-    
-    // Stop at a specific distance
-    if (constexpr float MaxZoomDistance = 2500.0f; Distance + Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() > 0) {
-      return;
-    }
-
-    FVector FutureLocation = this->PlayerMesh->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale;
-    const float ScaleFactor = (Distance + FutureLocation.Length() * Value.Get<float>()) / 20;
-
-    this->PlayerMesh->SetRelativeScale3D(FVector(1.0f / ScaleFactor, 1.0f / ScaleFactor, 1.0f / ScaleFactor));
-    
-    this->Root->AddRelativeLocation(FutureLocation);
   }
 }
