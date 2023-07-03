@@ -5,6 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
+#include "Components/DecalComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Transcendet_Life/BaseClasses/GravityPlanet.h"
@@ -14,12 +15,16 @@
 AGodHand::AGodHand() {
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
+  this->PrimaryActorTick.TickInterval = 1.0f / 0.01;
 
   this->SetActorRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
 
   // Setup component hierarchy
   this->Root = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
   SetRootComponent(this->Root);
+
+  this->Selection = CreateDefaultSubobject<UDecalComponent>(TEXT("Pointer"));
+  this->Selection->SetupAttachment(this->Root);
 
   // Setup the PlayerMesh
   this->PlayerMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PlayerMeshComp"));
@@ -62,14 +67,6 @@ void AGodHand::BeginPlay() {
 void AGodHand::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
 
-  
-
-  FHitResult HitResult;
-  FCollisionQueryParams CollisionParams;
-  FVector Start = this->PlayerMesh->GetComponentLocation();
-  FVector End = this->PlayerMesh->GetForwardVector();
-  this->ActorLineTraceSingle(HitResult, Start, End, ECC_Visibility, CollisionParams);
-  DrawDebugLine(GetWorld(), Start, HitResult.Location, FColor::Red, false, 0.1f, 0, 1.0f);
 }
 
 void AGodHand::GetRotatingWorldFormAllActors() {
@@ -95,7 +92,7 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
     EnhancedInputComponent->BindAction(this->RotatePlanetAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
     EnhancedInputComponent->BindAction(this->ZoomPlanetAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomPlanet);
-    EnhancedInputComponent->BindAction(this->MoveHandMeshAction, ETriggerEvent::Triggered, this, &AGodHand::MoveHandMesh);
+    EnhancedInputComponent->BindAction(this->MoveHandMeshAction, ETriggerEvent::Triggered, this, &AGodHand::MoveCursor);
   }
 }
 
@@ -109,37 +106,44 @@ void AGodHand::RotatePlanet(const FInputActionValue& Value) {
 }
 
 void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
-  const FVector StartLocation = this->PlayerMesh->GetComponentLocation();
-  const FVector ShootDirection = this->PlayerMesh->GetForwardVector();
+  const FVector StartLocation = this->SpringArm->GetComponentLocation();
+  const FVector ShootDirection = this->SpringArm->GetForwardVector();
   const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
-  const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length() * -1.0;
+  const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length();
 
   if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
     constexpr float ZoomScale = 100.0f;
 
     float Distance = HitResult.Distance;
-    
+
     // Stop before the the Actor will be in the planet
-    if (constexpr float MinZoomDistance = 150.0f; Distance + Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() < 0) {
+    if (constexpr float MinZoomDistance = 150.0f; Distance - Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() > 0) {
       return;
     }
     
     // Stop at a specific distance
-    if (constexpr float MaxZoomDistance = 2500.0f; Distance + Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() > 0) {
+    if (constexpr float MaxZoomDistance = 2500.0f; Distance - Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() < 0) {
       return;
     }
 
-    FVector FutureLocation = this->PlayerMesh->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale;
+    FVector FutureLocation = this->SpringArm->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale;
     const float ScaleFactor = (Distance + FutureLocation.Length() * Value.Get<float>()) / 20;
 
     this->PlayerMesh->SetRelativeScale3D(FVector(1.0f / ScaleFactor, 1.0f / ScaleFactor, 1.0f / ScaleFactor));
-    
+
     this->Root->AddRelativeLocation(FutureLocation);
   }
 }
 
-void AGodHand::MoveHandMesh(const FInputActionValue& Value) {
-   if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
+void AGodHand::MoveCursor(const FInputActionValue& Value) {
+  this->MoveHandMesh();
+  this->MoveDecal();
+}
+
+
+void AGodHand::MoveHandMesh() const {
+
+  if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
     // Get the Mouse Position from the Viewport
     FVector2D MousePosition;
 
@@ -153,17 +157,21 @@ void AGodHand::MoveHandMesh(const FInputActionValue& Value) {
       MousePosition.Y = FMath::Clamp(MousePosition.Y, 0.1 * ViewportSize.Y, 0.95 * ViewportSize.Y);
 
       // Get the width and height inside the field of View from the Camera to the end of the SpringArm
-      const float HalfWidthFromFOV = (tan((this->PlayerCamera->FieldOfView / 2) * PI / 180) * this->SpringArm->
-                                                                                                    TargetArmLength);
+      const float HalfWidthFromFOV = (tan((this->PlayerCamera->FieldOfView / 2) * PI / 180) * this->SpringArm->TargetArmLength);
       const float HeightFromFOV = 2 * HalfWidthFromFOV * (ViewportSize.Y / ViewportSize.X);
 
       // Calculate the start points for the movement for the mesh
       const float StartPointFromFOVAndSpringArmForWidth = this->SpringArm->GetRelativeLocation().Y - HalfWidthFromFOV;
-      const float StartPointFromFOVAndSpringArmForHeightForZ = this->SpringArm->GetRelativeLocation().Z - HeightFromFOV
-        / 2;
-      const float StartPointFromFOVAndSpringArmForHeightForX = this->SpringArm->GetRelativeLocation().X + sin(
-        this->SpringArm->GetRelativeRotation().Pitch * PI / 180) * HeightFromFOV / 2;
+      const float StartPointFromFOVAndSpringArmForHeightForZ = this->SpringArm->GetRelativeLocation().Z - HeightFromFOV / 2;
+      const float StartPointFromFOVAndSpringArmForHeightForX = this->SpringArm->GetRelativeLocation().X + sin(this->SpringArm->GetRelativeRotation().Pitch * PI / 180) * HeightFromFOV / 2;
 
+
+      float MousePositionRatioX = (MousePosition.X - ViewportSize.X / 2.0f) / ViewportSize.X / 2.0f;
+      float MousePositionRatioY = (MousePosition.Y - ViewportSize.Y / 2.0f) / ViewportSize.Y / 2.0f;
+
+      FRotator NewRotator = FRotator(MousePositionRatioY * 40.0f, MousePositionRatioX * 40.0f + 180, this->PlayerMesh->GetRelativeRotation().Roll);
+      this->PlayerMesh->SetRelativeRotation(NewRotator);
+      
       // Create and get the percentage of the mouse position from the Viewport width and height. 
       FVector2D MousePositionPercentage;
       MousePositionPercentage.X = (100 / ViewportSize.X) * (MousePosition.X / 100);
@@ -172,12 +180,42 @@ void AGodHand::MoveHandMesh(const FInputActionValue& Value) {
       //  Set the Vector of the MeshLocation to the value of the percentage of the width and height
       FVector3d NewMeshLocation;
       NewMeshLocation.Y = (MousePositionPercentage.X * 2 * HalfWidthFromFOV) + StartPointFromFOVAndSpringArmForWidth;
-      NewMeshLocation.X = (MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX - (1 -
-        MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX;
-      NewMeshLocation.Z = ((1 - MousePositionPercentage.Y) * HeightFromFOV) +
-        StartPointFromFOVAndSpringArmForHeightForZ; // 1- cause to invert the movement
+      NewMeshLocation.X = (MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX - (1 - MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX;
+      NewMeshLocation.Z = ((1 - MousePositionPercentage.Y) * HeightFromFOV) + StartPointFromFOVAndSpringArmForHeightForZ; // 1- cause to invert the movement
 
       this->PlayerMesh->SetRelativeLocation(NewMeshLocation);
+    }
+  }
+}
+
+void AGodHand::MoveDecal() const {
+  FVector WorldMousePosition;
+
+  // Hole die aktuelle Mausposition auf dem Viewport
+  FVector2D MousePosition;
+  bool bGotMousePosition = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(MousePosition.X, MousePosition.Y);
+
+  if (bGotMousePosition)
+  {
+    // Wandle die Bildschirmkoordinaten in Weltkoordinaten um
+    FHitResult HitResult;
+    FVector CameraLocation;
+    FVector WorldDirection;
+    UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
+
+    // Finde den Schnittpunkt zwischen der Welt und dem Bildschirm
+    if (UWorld* World = GetWorld())
+    {
+      if (World->LineTraceSingleByChannel(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Visibility))
+      {
+        // Die Mausposition relativ zur Welt
+        WorldMousePosition = HitResult.Location;
+
+        
+        this->Selection->SetWorldLocation(WorldMousePosition);
+        this->Selection->SetWorldRotation(HitResult.Normal.Rotation());
+        //DrawDebugLine(GetWorld(), this->PlayerMesh->GetComponentLocation(), WorldMousePosition, FColor::Red, false, 5, 0.5, .5);
+      }
     }
   }
 }

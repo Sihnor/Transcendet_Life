@@ -44,6 +44,15 @@ protected:
 	float RotationObjectSpeed = 50.0f;
 
 private:
+	
+ 	// The Root for the Character
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* Root;
+	
+	// Mesh of the GodHand being dispayed
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* PlayerMesh;
+	
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;
@@ -51,6 +60,9 @@ private:
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* PlayerCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UDecalComponent* Selection;
 	
 public:
 	// Sets default values for this pawn's properties
@@ -63,9 +75,12 @@ protected:
 	// Called to zoom
 	void ZoomPlanet(const struct FInputActionValue& Value);
 
-	// Called to zoom
-	void MoveHandMesh(const struct FInputActionValue& Value);
+	// Called to to Move
+	void MoveCursor(const struct FInputActionValue& Value);
 
+
+
+	
 protected:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -79,17 +94,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	/**
-	 * @brief The Root for the Character
-	 */
-	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite)
-	USceneComponent* Root;
-	
-	/**
-	 * @brief Mesh of the GodHand being dispayed
-	 */
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
-	USkeletalMeshComponent* PlayerMesh;
 
 private:
 	/**
@@ -97,7 +101,11 @@ private:
 	 */
 	void GetRotatingWorldFormAllActors();
 
+	// Sub Function of Action MoveCursor to move the Hand Mesh
+	void MoveHandMesh() const;
 
+	// Sub Function of Action MoveCursor to move the Decal
+	void MoveDecal() const;
 
 
 };
