@@ -7,9 +7,12 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/DecalComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Transcendet_Life/BaseClasses/GravityCharacter.h"
 #include "Transcendet_Life/BaseClasses/GravityPlanet.h"
 
 
@@ -18,6 +21,7 @@ AGodHand::AGodHand() {
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
   this->PrimaryActorTick.TickInterval = 1.0f / 0.01;
+  this->bIsOverlapped = false;
 
   this->SetActorRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
 
@@ -25,8 +29,19 @@ AGodHand::AGodHand() {
   this->Root = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
   SetRootComponent(this->Root);
 
+  this->SelectionOverlap = CreateDefaultSubobject<UBoxComponent>(TEXT("DecalBox"));
+  this->SelectionOverlap->SetRelativeLocation(FVector(40.0f, 0.0f, 0.0f));
+  this->SelectionOverlap->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+  this->SelectionOverlap->SetRelativeScale3D(FVector(0.1f));
+  this->SelectionOverlap->SetBoxExtent(FVector(128.0f, 256.0f, 256.0f));
+  this->SelectionOverlap->OnComponentBeginOverlap.AddDynamic(this, &AGodHand::OnDecalBeginOverlap);
+  this->SelectionOverlap->OnComponentEndOverlap.AddDynamic(this, &AGodHand::OnDecalEndOverlap);
+  this->SelectionOverlap->SetupAttachment(this->Root);
+
   this->Selection = CreateDefaultSubobject<UDecalComponent>(TEXT("Pointer"));
-  this->Selection->SetupAttachment(this->Root);
+  this->Selection->DecalSize = FVector(128.0f, 256.0f, 256.0f);
+  this->Selection->SetupAttachment(this->SelectionOverlap);
+
 
   // Setup the PlayerMesh
   this->PlayerMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PlayerMeshComp"));
@@ -63,6 +78,32 @@ void AGodHand::BeginPlay() {
 
   // Get the all Actor from World
   this->GetRotatingWorldFormAllActors();
+}
+
+void AGodHand::OnDecalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+                                   const FHitResult& SweepResult) {
+  AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
+  if (Character) {
+    this->bIsOverlapped = true;
+    this->SelectionOverlap->SetWorldLocation(Actor->GetActorLocation());
+  
+    const FVector StartLocation = Character->GetActorLocation();
+    const FVector ShootDirection = Character->GetMovementComponent()->GetLastInputVector();
+    const FVector EndLocation = StartLocation + ShootDirection * 200.0f;
+    FHitResult HitResult;
+  
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, StartLocation, EndLocation, ECC_Planet)) {
+      UE_LOG(LogTemp, Warning, TEXT("ASDASDA"));
+    }
+  }
+}
+
+void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {
+  UE_LOG(LogTemp, Warning, TEXT("DAS WARS"));
+  AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
+  if (Character) {
+    this->bIsOverlapped = false;
+  }
 }
 
 // Called every frame
@@ -206,11 +247,13 @@ void AGodHand::MoveDecal() const {
     if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Planet)) {
       // Die Mausposition relativ zur Welt
       WorldMousePosition = HitResult.Location;
-      
 
-      this->Selection->SetWorldLocation(WorldMousePosition);
-      this->Selection->SetWorldRotation(HitResult.Normal.Rotation());
-      //DrawDebugLine(GetWorld(), this->PlayerMesh->GetComponentLocation(), WorldMousePosition, FColor::Red, false, 5, 0.5, .5);
+      if (!this->bIsOverlapped) {
+        this->SelectionOverlap->SetWorldLocation(WorldMousePosition);
+        this->SelectionOverlap->SetWorldRotation(HitResult.Normal.Rotation());
+      }
+      
+      
     }
   }
 }
