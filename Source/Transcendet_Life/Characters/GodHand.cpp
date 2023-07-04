@@ -1,5 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
+#define ECC_Planet ECC_GameTraceChannel1
+
 #include "GodHand.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -66,7 +68,6 @@ void AGodHand::BeginPlay() {
 // Called every frame
 void AGodHand::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
-
 }
 
 void AGodHand::GetRotatingWorldFormAllActors() {
@@ -110,8 +111,8 @@ void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
   const FVector ShootDirection = this->SpringArm->GetForwardVector();
   const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
   const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length();
-
-  if (FHitResult HitResult; this->RotatingObject->ActorLineTraceSingle(HitResult, StartLocation, EndLocation, ECC_Visibility, FCollisionQueryParams(FName(TEXT("Raycast")), false))) {
+  FHitResult HitResult;
+  if (GetWorld()->LineTraceSingleByObjectType(HitResult, StartLocation, EndLocation, ECC_Planet)) {
     constexpr float ZoomScale = 100.0f;
 
     float Distance = HitResult.Distance;
@@ -120,7 +121,7 @@ void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
     if (constexpr float MinZoomDistance = 150.0f; Distance - Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() > 0) {
       return;
     }
-    
+
     // Stop at a specific distance
     if (constexpr float MaxZoomDistance = 2500.0f; Distance - Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() < 0) {
       return;
@@ -142,7 +143,6 @@ void AGodHand::MoveCursor(const FInputActionValue& Value) {
 
 
 void AGodHand::MoveHandMesh() const {
-
   if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
     // Get the Mouse Position from the Viewport
     FVector2D MousePosition;
@@ -171,7 +171,7 @@ void AGodHand::MoveHandMesh() const {
 
       FRotator NewRotator = FRotator(MousePositionRatioY * 40.0f, MousePositionRatioX * 40.0f + 180, this->PlayerMesh->GetRelativeRotation().Roll);
       this->PlayerMesh->SetRelativeRotation(NewRotator);
-      
+
       // Create and get the percentage of the mouse position from the Viewport width and height. 
       FVector2D MousePositionPercentage;
       MousePositionPercentage.X = (100 / ViewportSize.X) * (MousePosition.X / 100);
@@ -195,8 +195,7 @@ void AGodHand::MoveDecal() const {
   FVector2D MousePosition;
   bool bGotMousePosition = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(MousePosition.X, MousePosition.Y);
 
-  if (bGotMousePosition)
-  {
+  if (bGotMousePosition) {
     // Wandle die Bildschirmkoordinaten in Weltkoordinaten um
     FHitResult HitResult;
     FVector CameraLocation;
@@ -204,18 +203,14 @@ void AGodHand::MoveDecal() const {
     UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
 
     // Finde den Schnittpunkt zwischen der Welt und dem Bildschirm
-    if (UWorld* World = GetWorld())
-    {
-      if (World->LineTraceSingleByChannel(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Visibility))
-      {
-        // Die Mausposition relativ zur Welt
-        WorldMousePosition = HitResult.Location;
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Planet)) {
+      // Die Mausposition relativ zur Welt
+      WorldMousePosition = HitResult.Location;
+      
 
-        
-        this->Selection->SetWorldLocation(WorldMousePosition);
-        this->Selection->SetWorldRotation(HitResult.Normal.Rotation());
-        //DrawDebugLine(GetWorld(), this->PlayerMesh->GetComponentLocation(), WorldMousePosition, FColor::Red, false, 5, 0.5, .5);
-      }
+      this->Selection->SetWorldLocation(WorldMousePosition);
+      this->Selection->SetWorldRotation(HitResult.Normal.Rotation());
+      //DrawDebugLine(GetWorld(), this->PlayerMesh->GetComponentLocation(), WorldMousePosition, FColor::Red, false, 5, 0.5, .5);
     }
   }
 }
