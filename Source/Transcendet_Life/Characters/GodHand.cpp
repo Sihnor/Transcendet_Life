@@ -35,7 +35,6 @@ AGodHand::AGodHand() {
   this->SelectionOverlap->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
   this->SelectionOverlap->SetRelativeScale3D(FVector(0.2f));
   this->SelectionOverlap->SetBoxExtent(FVector(128.0f, 256.0f, 256.0f));
-  this->SelectionOverlap->OnComponentBeginOverlap.AddDynamic(this, &AGodHand::OnDecalBeginOverlap);
   this->SelectionOverlap->OnComponentEndOverlap.AddDynamic(this, &AGodHand::OnDecalEndOverlap);
   this->SelectionOverlap->SetupAttachment(this->Root);
 

@@ -92,9 +92,6 @@ protected:
 
 public:
   UFUNCTION()
-  void OnDecalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-  
-  UFUNCTION()
   void OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 private:
