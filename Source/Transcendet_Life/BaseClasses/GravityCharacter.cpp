@@ -62,7 +62,9 @@ UGravityMovementComponent* AGravityCharacter::GetGravityMovementComponent() {
 void AGravityCharacter::BeginPlay() {
   Super::BeginPlay();
 
-  this->Outliner->SetVisibility(false);
+  this->Outliner->SetVisibility(true);
+  this->Outliner->SetActive(true);
+  this->CharacterMesh->CustomDepthStencilValue = 1;
 
   // Setting up Enhanced Player Input
   if (const APlayerController* PlayerController = Cast<APlayerController>(this->GetController())) {

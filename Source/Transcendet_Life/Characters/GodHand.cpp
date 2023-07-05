@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #define ECC_Planet ECC_GameTraceChannel1
+#define ECC_GravityCharacter ECC_GameTraceChannel2
 
 #include "GodHand.h"
 #include "EnhancedInputComponent.h"
@@ -10,7 +11,6 @@
 #include "Components/BoxComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/PostProcessComponent.h"
-#include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Transcendet_Life/BaseClasses/GravityCharacter.h"
@@ -19,9 +19,11 @@
 
 // Sets default values
 AGodHand::AGodHand() {
+  // Enable click events
+  
+  
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
-  //this->PrimaryActorTick.TickInterval = 1.0f / 0.01;
   this->bIsOverlapped = false;
 
   this->SetActorRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
@@ -68,6 +70,10 @@ AGodHand::AGodHand() {
 void AGodHand::BeginPlay() {
   Super::BeginPlay();
 
+  if (APlayerController* PlayerController = Cast<APlayerController>(this->Controller)) {
+    PlayerController->bEnableClickEvents = true;
+  }
+
   // Setting up the Enhanced Player Input
   if (const APlayerController* PlayerController = Cast<APlayerController>(this->GetController())) {
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
@@ -84,7 +90,9 @@ void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
   // Setting the outline to false
   AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
   if (Character) {
-    Character->Outliner->SetVisibility(false);
+    //Character->Outliner->SetVisibility(false);
+    //Character->Outliner->SetActive(false);
+    Character->CharacterMesh->CustomDepthStencilValue = 1;
   }
 }
 
@@ -227,9 +235,10 @@ void AGodHand::MoveDecal() const {
     UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
 
     // Scan for a Character to set the outliner
-    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Pawn) ){
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_GravityCharacter) ){
       AGravityCharacter* Character = Cast<AGravityCharacter>(HitResult.GetActor());
-      Character->Outliner->SetVisibility(true);
+
+
     }
     
     // Get the Position for the decal on the Planet
