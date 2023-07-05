@@ -9,6 +9,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/PostProcessComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -20,7 +21,7 @@
 AGodHand::AGodHand() {
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
-  this->PrimaryActorTick.TickInterval = 1.0f / 0.01;
+  //this->PrimaryActorTick.TickInterval = 1.0f / 0.01;
   this->bIsOverlapped = false;
 
   this->SetActorRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
@@ -32,7 +33,7 @@ AGodHand::AGodHand() {
   this->SelectionOverlap = CreateDefaultSubobject<UBoxComponent>(TEXT("DecalBox"));
   this->SelectionOverlap->SetRelativeLocation(FVector(40.0f, 0.0f, 0.0f));
   this->SelectionOverlap->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
-  this->SelectionOverlap->SetRelativeScale3D(FVector(0.1f));
+  this->SelectionOverlap->SetRelativeScale3D(FVector(0.2f));
   this->SelectionOverlap->SetBoxExtent(FVector(128.0f, 256.0f, 256.0f));
   this->SelectionOverlap->OnComponentBeginOverlap.AddDynamic(this, &AGodHand::OnDecalBeginOverlap);
   this->SelectionOverlap->OnComponentEndOverlap.AddDynamic(this, &AGodHand::OnDecalEndOverlap);
@@ -80,35 +81,19 @@ void AGodHand::BeginPlay() {
   this->GetRotatingWorldFormAllActors();
 }
 
-void AGodHand::OnDecalBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
-                                   const FHitResult& SweepResult) {
-  AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
-  if (Character) {
-    this->bIsOverlapped = true;
-    this->SelectionOverlap->SetWorldLocation(Actor->GetActorLocation());
-  
-    const FVector StartLocation = Character->GetActorLocation();
-    const FVector ShootDirection = Character->GetMovementComponent()->GetLastInputVector();
-    const FVector EndLocation = StartLocation + ShootDirection * 200.0f;
-    FHitResult HitResult;
-  
-    if (GetWorld()->LineTraceSingleByObjectType(HitResult, StartLocation, EndLocation, ECC_Planet)) {
-      UE_LOG(LogTemp, Warning, TEXT("ASDASDA"));
-    }
-  }
-}
-
 void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {
-  UE_LOG(LogTemp, Warning, TEXT("DAS WARS"));
+  // Setting the outline to false
   AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
   if (Character) {
-    this->bIsOverlapped = false;
+    Character->Outliner->SetVisibility(false);
   }
 }
 
 // Called every frame
 void AGodHand::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
+  
+  this->MoveDecal();
 }
 
 void AGodHand::GetRotatingWorldFormAllActors() {
@@ -179,9 +164,8 @@ void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
 
 void AGodHand::MoveCursor(const FInputActionValue& Value) {
   this->MoveHandMesh();
-  this->MoveDecal();
+  //this->MoveDecal();
 }
-
 
 void AGodHand::MoveHandMesh() const {
   if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
@@ -235,7 +219,7 @@ void AGodHand::MoveDecal() const {
   // Hole die aktuelle Mausposition auf dem Viewport
   FVector2D MousePosition;
   bool bGotMousePosition = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(MousePosition.X, MousePosition.Y);
-
+  
   if (bGotMousePosition) {
     // Wandle die Bildschirmkoordinaten in Weltkoordinaten um
     FHitResult HitResult;
@@ -243,17 +227,18 @@ void AGodHand::MoveDecal() const {
     FVector WorldDirection;
     UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
 
-    // Finde den Schnittpunkt zwischen der Welt und dem Bildschirm
+    // Scan for a Character to set the outliner
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Pawn) ){
+      AGravityCharacter* Character = Cast<AGravityCharacter>(HitResult.GetActor());
+      Character->Outliner->SetVisibility(true);
+    }
+    
+    // Get the Position for the decal on the Planet
     if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Planet)) {
-      // Die Mausposition relativ zur Welt
       WorldMousePosition = HitResult.Location;
-
-      if (!this->bIsOverlapped) {
-        this->SelectionOverlap->SetWorldLocation(WorldMousePosition);
-        this->SelectionOverlap->SetWorldRotation(HitResult.Normal.Rotation());
-      }
       
-      
+      this->SelectionOverlap->SetWorldLocation(WorldMousePosition);
+      this->SelectionOverlap->SetWorldRotation(HitResult.Normal.Rotation());
     }
   }
 }
