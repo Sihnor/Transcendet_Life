@@ -95,10 +95,6 @@ public:
 	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category=Character, meta=(AllowPrivateAccess = "true"))
 	class UGravityMovementComponent* CharacterMovement;
 
-	// Adding the process for the outline
-	UPROPERTY(EditAnywhere , BlueprintReadWrite, Category=Character, meta=(AllowPrivateAccess = "true"))
-	class UPostProcessComponent* Outliner;
-
 public:
 	/** Returns CapsuleComponent subobject **/
 	FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }

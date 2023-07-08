@@ -22,10 +22,6 @@ AGravityCharacter::AGravityCharacter() {
   this->CapsuleComponent->bDynamicObstacle = true;
   this->SetRootComponent(this->CapsuleComponent);
 
-  this->Outliner = CreateDefaultSubobject<UPostProcessComponent>(TEXT("Outline"));
-  this->Outliner->SetupAttachment(this->CapsuleComponent);
-  this->Outliner->SetVisibility(false);
-
   this->CharacterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
   this->CharacterMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -110.0f));
   this->CharacterMesh->SetupAttachment(this->CapsuleComponent);
@@ -61,10 +57,6 @@ UGravityMovementComponent* AGravityCharacter::GetGravityMovementComponent() {
 // Called when the game starts or when spawned
 void AGravityCharacter::BeginPlay() {
   Super::BeginPlay();
-
-  this->Outliner->SetVisibility(true);
-  this->Outliner->SetActive(true);
-  this->CharacterMesh->CustomDepthStencilValue = 1;
 
   // Setting up Enhanced Player Input
   if (const APlayerController* PlayerController = Cast<APlayerController>(this->GetController())) {
