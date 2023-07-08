@@ -1,23 +1,49 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
+#define ECC_Planet ECC_GameTraceChannel1
+#define ECC_GravityCharacter ECC_GameTraceChannel2
+
 #include "GodHand.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputTriggers.h"
 #include "Camera/CameraComponent.h"
-#include "Transcendet_Life/BaseClasses/GravityPlanet.h"
+#include "Components/BoxComponent.h"
+#include "Components/DecalComponent.h"
+#include "Components/PostProcessComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Transcendet_Life/BaseClasses/GravityCharacter.h"
+#include "Transcendet_Life/BaseClasses/GravityPlanet.h"
 
 
 // Sets default values
 AGodHand::AGodHand() {
+  // Enable click events
+  
+  
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
+  this->bIsOverlapped = false;
+
+  this->SetActorRelativeRotation(FRotator(-30.0f, 0.0f, 0.0f));
 
   // Setup component hierarchy
   this->Root = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
   SetRootComponent(this->Root);
+
+  this->SelectionOverlap = CreateDefaultSubobject<UBoxComponent>(TEXT("DecalBox"));
+  this->SelectionOverlap->SetRelativeLocation(FVector(40.0f, 0.0f, 0.0f));
+  this->SelectionOverlap->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+  this->SelectionOverlap->SetRelativeScale3D(FVector(0.2f));
+  this->SelectionOverlap->SetBoxExtent(FVector(128.0f, 256.0f, 256.0f));
+  this->SelectionOverlap->OnComponentEndOverlap.AddDynamic(this, &AGodHand::OnDecalEndOverlap);
+  this->SelectionOverlap->SetupAttachment(this->Root);
+
+  this->Selection = CreateDefaultSubobject<UDecalComponent>(TEXT("Pointer"));
+  this->Selection->DecalSize = FVector(128.0f, 256.0f, 256.0f);
+  this->Selection->SetupAttachment(this->SelectionOverlap);
+
 
   // Setup the PlayerMesh
   this->PlayerMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("PlayerMeshComp"));
@@ -44,6 +70,10 @@ AGodHand::AGodHand() {
 void AGodHand::BeginPlay() {
   Super::BeginPlay();
 
+  if (APlayerController* PlayerController = Cast<APlayerController>(this->Controller)) {
+    PlayerController->bEnableClickEvents = true;
+  }
+
   // Setting up the Enhanced Player Input
   if (const APlayerController* PlayerController = Cast<APlayerController>(this->GetController())) {
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
@@ -56,51 +86,21 @@ void AGodHand::BeginPlay() {
   this->GetRotatingWorldFormAllActors();
 }
 
+void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Actor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {
+  // Setting the outline to false
+  AGravityCharacter* Character = Cast<AGravityCharacter>(Actor);
+  if (Character) {
+    //Character->Outliner->SetVisibility(false);
+    //Character->Outliner->SetActive(false);
+    Character->CharacterMesh->CustomDepthStencilValue = 1;
+  }
+}
+
 // Called every frame
 void AGodHand::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
-
-  if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
-    // Get the Mouse Position from the Viewport
-    FVector2D MousePosition;
-
-    bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition);
-    if (bMousePositionValid) {
-      FVector2D ViewportSize;
-      ViewportClient->GetViewportSize(ViewportSize);
-
-      // Clamping the mouse position to prevent the mesh from moving out too far of the viewport 
-      MousePosition.X = FMath::Clamp(MousePosition.X, 0.05 * ViewportSize.X, 0.95 * ViewportSize.X);
-      MousePosition.Y = FMath::Clamp(MousePosition.Y, 0.1 * ViewportSize.Y, 0.95 * ViewportSize.Y);
-
-      // Get the width and height inside the field of View from the Camera to the end of the SpringArm
-      const float HalfWidthFromFOV = (tan((this->PlayerCamera->FieldOfView / 2) * PI / 180) * this->SpringArm->
-        TargetArmLength);
-      const float HeightFromFOV = 2 * HalfWidthFromFOV * (ViewportSize.Y / ViewportSize.X);
-
-      // Calculate the start points for the movement for the mesh
-      const float StartPointFromFOVAndSpringArmForWidth = this->SpringArm->GetRelativeLocation().Y - HalfWidthFromFOV;
-      const float StartPointFromFOVAndSpringArmForHeightForZ = this->SpringArm->GetRelativeLocation().Z - HeightFromFOV
-        / 2;
-      const float StartPointFromFOVAndSpringArmForHeightForX = this->SpringArm->GetRelativeLocation().X + sin(
-        this->SpringArm->GetRelativeRotation().Pitch * PI / 180) * HeightFromFOV / 2;
-
-      // Create and get the percentage of the mouse position from the Viewport width and height. 
-      FVector2D MousePositionPercentage;
-      MousePositionPercentage.X = (100 / ViewportSize.X) * (MousePosition.X / 100);
-      MousePositionPercentage.Y = (100 / ViewportSize.Y) * (MousePosition.Y / 100);
-
-      //  Set the Vector of the MeshLocation to the value of the percentage of the width and height
-      FVector3d NewMeshLocation;
-      NewMeshLocation.Y = (MousePositionPercentage.X * 2 * HalfWidthFromFOV) + StartPointFromFOVAndSpringArmForWidth;
-      NewMeshLocation.X = (MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX - (1 -
-        MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX;
-      NewMeshLocation.Z = ((1 - MousePositionPercentage.Y) * HeightFromFOV) +
-        StartPointFromFOVAndSpringArmForHeightForZ; // 1- cause to invert the movement
-
-      this->PlayerMesh->SetRelativeLocation(NewMeshLocation);
-    }
-  }
+  
+  this->MoveDecal();
 }
 
 void AGodHand::GetRotatingWorldFormAllActors() {
@@ -124,29 +124,129 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
   Super::SetupPlayerInputComponent(PlayerInputComponent);
 
   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
-    EnhancedInputComponent->BindAction(this->MoveWorldAction, ETriggerEvent::Triggered, this, &AGodHand::MoveWorld);
+    EnhancedInputComponent->BindAction(this->RotatePlanetAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
+    EnhancedInputComponent->BindAction(this->ZoomPlanetAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomPlanet);
+    EnhancedInputComponent->BindAction(this->MoveHandMeshAction, ETriggerEvent::Triggered, this, &AGodHand::MoveCursor);
   }
 }
 
-void AGodHand::MoveWorld(const FInputActionValue& Value) {
+void AGodHand::RotatePlanet(const FInputActionValue& Value) {
   // Check if Object is Valid
   if (!this->RotatingObject) {
     return;
   }
 
-  // Convert Parameter in a 2D Vector
-  const FVector2D CurrentValue = Value.Get<FVector2D>();
+  this->RotatingObject->RotatePlanet(Value);
+}
 
-  constexpr float RotationSpeed = 0.5f;
+void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
+  const FVector StartLocation = this->SpringArm->GetComponentLocation();
+  const FVector ShootDirection = this->SpringArm->GetForwardVector();
+  const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
+  const FVector EndLocation = StartLocation + ShootDirection * PlanetWorldLocation.Length();
+  FHitResult HitResult;
+  if (GetWorld()->LineTraceSingleByObjectType(HitResult, StartLocation, EndLocation, ECC_Planet)) {
+    constexpr float ZoomScale = 100.0f;
 
-  const float RotationDeltaYaw = CurrentValue.X * RotationSpeed * GetWorld()->GetDeltaSeconds();
-  const float RotationDeltaPitch = (CurrentValue.Y * -1) * RotationSpeed * GetWorld()->GetDeltaSeconds();
+    float Distance = HitResult.Distance;
 
-  // Calculate the Quaternion for the Rotations based on the Deltas
-  const FQuat YawRotation = FQuat(FVector::UpVector, RotationDeltaYaw);
-  const FQuat PitchRotation = FQuat(FVector::RightVector, RotationDeltaPitch);
+    // Stop before the the Actor will be in the planet
+    if (constexpr float MinZoomDistance = 150.0f; Distance - Value.Get<float>() * ZoomScale < MinZoomDistance && Value.Get<float>() > 0) {
+      return;
+    }
 
-  const FQuat CombinedRotation = YawRotation * PitchRotation;
+    // Stop at a specific distance
+    if (constexpr float MaxZoomDistance = 2500.0f; Distance - Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() < 0) {
+      return;
+    }
+
+    FVector FutureLocation = this->SpringArm->GetForwardVector().GetSafeNormal() * Value.Get<float>() * ZoomScale;
+    const float ScaleFactor = (Distance + FutureLocation.Length() * Value.Get<float>()) / 20;
+
+    this->PlayerMesh->SetRelativeScale3D(FVector(1.0f / ScaleFactor, 1.0f / ScaleFactor, 1.0f / ScaleFactor));
+
+    this->Root->AddRelativeLocation(FutureLocation);
+  }
+}
+
+void AGodHand::MoveCursor(const FInputActionValue& Value) {
+  this->MoveHandMesh();
+  //this->MoveDecal();
+}
+
+void AGodHand::MoveHandMesh() const {
+  if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
+    // Get the Mouse Position from the Viewport
+    FVector2D MousePosition;
+
+    const bool bMousePositionValid = ViewportClient->GetMousePosition(MousePosition);
+    if (bMousePositionValid) {
+      FVector2D ViewportSize;
+      ViewportClient->GetViewportSize(ViewportSize);
+
+      // Clamping the mouse position to prevent the mesh from moving out too far of the viewport 
+      MousePosition.X = FMath::Clamp(MousePosition.X, 0.05 * ViewportSize.X, 0.95 * ViewportSize.X);
+      MousePosition.Y = FMath::Clamp(MousePosition.Y, 0.1 * ViewportSize.Y, 0.95 * ViewportSize.Y);
+
+      // Get the width and height inside the field of View from the Camera to the end of the SpringArm
+      const float HalfWidthFromFOV = (tan((this->PlayerCamera->FieldOfView / 2) * PI / 180) * this->SpringArm->TargetArmLength);
+      const float HeightFromFOV = 2 * HalfWidthFromFOV * (ViewportSize.Y / ViewportSize.X);
+
+      // Calculate the start points for the movement for the mesh
+      const float StartPointFromFOVAndSpringArmForWidth = this->SpringArm->GetRelativeLocation().Y - HalfWidthFromFOV;
+      const float StartPointFromFOVAndSpringArmForHeightForZ = this->SpringArm->GetRelativeLocation().Z - HeightFromFOV / 2;
+      const float StartPointFromFOVAndSpringArmForHeightForX = this->SpringArm->GetRelativeLocation().X + sin(this->SpringArm->GetRelativeRotation().Pitch * PI / 180) * HeightFromFOV / 2;
+
+
+      float MousePositionRatioX = (MousePosition.X - ViewportSize.X / 2.0f) / ViewportSize.X / 2.0f;
+      float MousePositionRatioY = (MousePosition.Y - ViewportSize.Y / 2.0f) / ViewportSize.Y / 2.0f;
+
+      FRotator NewRotator = FRotator(MousePositionRatioY * 40.0f, MousePositionRatioX * 40.0f + 180, this->PlayerMesh->GetRelativeRotation().Roll);
+      this->PlayerMesh->SetRelativeRotation(NewRotator);
+
+      // Create and get the percentage of the mouse position from the Viewport width and height. 
+      FVector2D MousePositionPercentage;
+      MousePositionPercentage.X = (100 / ViewportSize.X) * (MousePosition.X / 100);
+      MousePositionPercentage.Y = (100 / ViewportSize.Y) * (MousePosition.Y / 100);
+
+      //  Set the Vector of the MeshLocation to the value of the percentage of the width and height
+      FVector3d NewMeshLocation;
+      NewMeshLocation.Y = (MousePositionPercentage.X * 2 * HalfWidthFromFOV) + StartPointFromFOVAndSpringArmForWidth;
+      NewMeshLocation.X = (MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX - (1 - MousePositionPercentage.Y) * StartPointFromFOVAndSpringArmForHeightForX;
+      NewMeshLocation.Z = ((1 - MousePositionPercentage.Y) * HeightFromFOV) + StartPointFromFOVAndSpringArmForHeightForZ; // 1- cause to invert the movement
+
+      this->PlayerMesh->SetRelativeLocation(NewMeshLocation);
+    }
+  }
+}
+
+void AGodHand::MoveDecal() const {
+  FVector WorldMousePosition;
+
+  // Hole die aktuelle Mausposition auf dem Viewport
+  FVector2D MousePosition;
+  bool bGotMousePosition = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(MousePosition.X, MousePosition.Y);
   
-  this->RotatingObject->AddActorWorldRotation(CombinedRotation.Rotator());
+  if (bGotMousePosition) {
+    // Wandle die Bildschirmkoordinaten in Weltkoordinaten um
+    FHitResult HitResult;
+    FVector CameraLocation;
+    FVector WorldDirection;
+    UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
+
+    // Scan for a Character to set the outliner
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_GravityCharacter) ){
+      AGravityCharacter* Character = Cast<AGravityCharacter>(HitResult.GetActor());
+
+
+    }
+    
+    // Get the Position for the decal on the Planet
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Planet)) {
+      WorldMousePosition = HitResult.Location;
+      
+      this->SelectionOverlap->SetWorldLocation(WorldMousePosition);
+      this->SelectionOverlap->SetWorldRotation(HitResult.Normal.Rotation());
+    }
+  }
 }

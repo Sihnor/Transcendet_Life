@@ -30,6 +30,9 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite)
   USphereComponent* GravityField;
 
+  // Rotate the world via Godhand
+  void RotatePlanet(const struct FInputActionValue& Value);
+
 protected:
   // Called when the game starts or when spawned
   virtual void BeginPlay() override;

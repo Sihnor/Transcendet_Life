@@ -5,6 +5,7 @@
 
 #include "GravityCharacter.h"
 #include "GravityMovementComponent.h"
+#include "InputActionValue.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -24,6 +25,24 @@ AGravityPlanet::AGravityPlanet() {
   this->GravityField->SetSphereRadius(250.0);
 
   
+}
+
+void AGravityPlanet::RotatePlanet(const FInputActionValue& Value) {
+  // Convert Parameter in a 2D Vector
+  const FVector2D CurrentValue = Value.Get<FVector2D>();
+
+  constexpr float RotationSpeed = 0.5f;
+
+  const float RotationDeltaYaw = CurrentValue.X * RotationSpeed * GetWorld()->GetDeltaSeconds();
+  const float RotationDeltaPitch = (CurrentValue.Y * -1) * RotationSpeed * GetWorld()->GetDeltaSeconds();
+
+  // Calculate the Quaternion for the Rotations based on the Deltas
+  const FQuat YawRotation = FQuat(FVector::UpVector, RotationDeltaYaw);
+  const FQuat PitchRotation = FQuat(FVector::RightVector, RotationDeltaPitch);
+
+  const FQuat CombinedRotation = YawRotation * PitchRotation;
+
+  this->AddActorWorldRotation(CombinedRotation.Rotator());
 }
 
 // Called when the game starts or when spawned
