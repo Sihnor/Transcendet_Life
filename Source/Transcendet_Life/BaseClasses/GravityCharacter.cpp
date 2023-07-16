@@ -1,7 +1,6 @@
 // Copyright 2019 Tefel. All Rights Reserved
 
 #include "GravityCharacter.h"
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GravityMovementComponent.h"
@@ -9,10 +8,15 @@
 #include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PostProcessComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Transcendet_Life/Characters/GodHand.h"
+#include "Transcendet_Life/UI/GravityCharacterHUDComponent.h"
 
+#define ECC_GravityCharacter ECC_GameTraceChannel2
 
 AGravityCharacter::AGravityCharacter() {
+  // Setting up the Capsule Component
   this->CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsuleCompnent"));
   this->CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
   this->CapsuleComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
@@ -22,16 +26,17 @@ AGravityCharacter::AGravityCharacter() {
   this->CapsuleComponent->bDynamicObstacle = true;
   this->SetRootComponent(this->CapsuleComponent);
 
+  // Setting up the CharacterMesh
   this->CharacterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
   this->CharacterMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -110.0f));
   this->CharacterMesh->SetupAttachment(this->CapsuleComponent);
+  this->CharacterMesh->SetCollisionObjectType(ECC_GravityCharacter);
 
   this->ArrowComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
   this->ArrowComponent->SetupAttachment(this->CapsuleComponent);
 
   // Attach a SpringArm for the Camera
   this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComp"));
-  //this->SpringArm->SetRelativeRotation(FRotator(-30, 0, 0)); // For the tilted view
   this->SpringArm->SetRelativeRotation(FRotator(0, 0, 0));
   this->SpringArm->TargetArmLength = 300;
   this->SpringArm->bDoCollisionTest = false;
@@ -48,6 +53,18 @@ AGravityCharacter::AGravityCharacter() {
   //this->CharacterMovement->NavAgentProps.AgentHeight = this->CapsuleComponent->GetScaledCapsuleHalfHeight();
   //this->CharacterMovement->NavAgentProps.AgentRadius = this->CapsuleComponent->GetScaledCapsuleRadius();
   this->CharacterMovement = CreateDefaultSubobject<UGravityMovementComponent>(TEXT("CharacterMovement"));
+
+  this->CharacterHUD = CreateDefaultSubobject<UGravityCharacterHUDComponent>(TEXT("CharacterMenu"));
+  this->CharacterHUD->SetRelativeLocation(FVector(0.0f, 0.f, 100.f)); // Position the camera
+  this->CharacterHUD->SetVisibility(false);
+  this->CharacterHUD->SetupAttachment(this->CapsuleComponent);
+
+
+  // Add the Event Functions
+  this->bCanBePossessed = false;
+
+  // Initialise Variables
+  this->GodHand = nullptr;
 }
 
 UGravityMovementComponent* AGravityCharacter::GetGravityMovementComponent() {
@@ -63,6 +80,13 @@ void AGravityCharacter::BeginPlay() {
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer())) {
       Subsystem->AddMappingContext(this->DefaultMappingContext, 0);
     }
+
+    //UGravityCharacterHUDOLD* GravityCharacterHUD = Cast<UGravityCharacterHUDOLD>(this->CharacterHUD);
+    //if (GravityCharacterHUD) {
+    //  UE_LOG(LogTemp, Error, TEXT("IF"))
+    //  GravityCharacterHUD->SetOwningDunked(this);
+    //}
+    //UE_LOG(LogTemp, Error, TEXT("ENDE"))
   }
 }
 
@@ -78,6 +102,19 @@ void AGravityCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
     // Move
     EnhancedInputComponent->BindAction(this->MoveCharacterAction, ETriggerEvent::Triggered, this, &AGravityCharacter::Move);
+
+    // UnPosses
+    EnhancedInputComponent->BindAction(this->PossesAction, ETriggerEvent::Started, this, &AGravityCharacter::UnPosses);
+  }
+}
+
+void AGravityCharacter::PreparePosses(AGodHand* God) {
+  // Get the Pointer for the GodHand
+  this->GodHand = God;
+
+  // Add the MappingContext of the Character
+  if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Cast<APlayerController>(this->Controller)->GetLocalPlayer())) {
+    Subsystem->AddMappingContext(this->DefaultMappingContext, 0);
   }
 }
 
@@ -87,8 +124,8 @@ void AGravityCharacter::Look(const FInputActionValue& Value) {
 
   if (this->GetController() != nullptr) {
     // add yaw and pitch input to controller
-    this->SpringArm->AddRelativeRotation(FRotator(LookAxisVector.Y * -1.0, 0.0f,0.0f));
-    this->AddActorLocalRotation(FRotator(0.0f, LookAxisVector.X,0.0f));
+    this->SpringArm->AddRelativeRotation(FRotator(LookAxisVector.Y * -1.0, 0.0f, 0.0f));
+    this->AddActorLocalRotation(FRotator(0.0f, LookAxisVector.X, 0.0f));
   }
 }
 
@@ -102,11 +139,19 @@ void AGravityCharacter::Move(const FInputActionValue& Value) {
   }
 }
 
-void AGravityCharacter::Jump(const FInputActionValue& Value) {
-  this->CharacterMovement->StartJumping();
+void AGravityCharacter::UnPosses(const FInputActionValue& Value) {
   
+  if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Cast<APlayerController>(this->Controller)->GetLocalPlayer())) {
+    Subsystem->RemoveMappingContext(this->DefaultMappingContext);
+  }
+  this->Controller->Possess(this->GodHand);
+  this->GodHand->PreparePosses();
+
+  this->GodHand = nullptr;
 }
 
-void AGravityCharacter::StopJumping(const FInputActionValue& Value) {
-  
+void AGravityCharacter::Jump(const FInputActionValue& Value) {
+  this->CharacterMovement->StartJumping();
 }
+
+void AGravityCharacter::StopJumping(const FInputActionValue& Value) { }
