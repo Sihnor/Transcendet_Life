@@ -6,19 +6,18 @@
 #include "GameFramework/Pawn.h"
 #include "GodHand.generated.h"
 
-
 UCLASS()
 class TRANSCENDET_LIFE_API AGodHand : public APawn {
   GENERATED_BODY()
 
 protected:
+  //////////////////////////////////////////////////////////////////////////// Input Mapping Context
+  
   // Adding the Mapping Context
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
   class UInputMappingContext* MappingContext;
-
-  /**
-   * @brief Move Action for the world 
-   */
+  
+  // Move Action for the world 
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
   class UInputAction* RotatePlanetAction;
 
@@ -30,15 +29,23 @@ protected:
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta = (AllowPrivateAccess="true"))
   class UInputAction* MoveHandMeshAction;
 
-  /**
-   * @brief The Pointer for the Object what will be Rotated
-   */
+  // Input Action for the Interaction
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+  class UInputAction* InteractAction;
+
+  // Input Action to Posses
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+  class UInputAction* PossesAction;
+  
+  
+  
+  
+  // The Pointer for the Object what will be Rotated
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
   class AGravityPlanet* RotatingObject;
 
-  /**
-   * @brief The Rotation Speed for the world
-   */
+  
+  // The Rotation Speed for the world
   float RotationObjectSpeed = 50.0f;
 
 private:
@@ -83,6 +90,16 @@ protected:
   // Called to to Move
   void MoveCursor(const struct FInputActionValue& Value);
 
+  // Called to Interact
+  void Interact(const struct  FInputActionValue& Value);
+
+  // Called to Posses
+  void Possess(const FInputActionValue& Value);
+
+public:
+
+  void PreparePosses();
+
 protected:
   // Called to bind functionality to input
   virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -97,10 +114,13 @@ public:
 private:
   bool bIsOverlapped;
 
+  bool bIsPossessing;
+
+  class AGravityCharacter* SelectedPlayer;
+
 private:
-  /**
-   * @brief this function is called in the BeginPLay to get The Low Poly World to rotate later.
-   */
+  
+  // this function is called in the BeginPLay to get The Low Poly World to rotate later.
   void GetRotatingWorldFormAllActors();
 
   // Sub Function of Action MoveCursor to move the Hand Mesh

@@ -10,7 +10,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/DecalComponent.h"
-#include "Components/PostProcessComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Transcendet_Life/BaseClasses/GravityCharacter.h"
@@ -19,9 +19,6 @@
 
 // Sets default values
 AGodHand::AGodHand() {
-  // Enable click events
-  
-  
   // Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
   PrimaryActorTick.bCanEverTick = true;
   this->bIsOverlapped = false;
@@ -50,7 +47,9 @@ AGodHand::AGodHand() {
   this->PlayerMesh->SetRelativeRotation(FRotator3d(0, 180, 0));
   this->PlayerMesh->SetRelativeScale3D(FVector(0.05));
   this->PlayerMesh->SetupAttachment(this->Root);
-
+  this->PlayerMesh->SetVisibility(true);
+  
+  
   // Attach a SpringArm for the Camera
   this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComp"));
   //this->SpringArm->SetRelativeRotation(FRotator(-30, 0, 0));
@@ -63,21 +62,31 @@ AGodHand::AGodHand() {
   this->PlayerCamera->SetupAttachment(this->SpringArm);
   this->PlayerCamera->FieldOfView = 40.0f;
 
-  AutoPossessPlayer = EAutoReceiveInput::Player0;
+  this->SelectedPlayer = nullptr;
+  this->bIsPossessing = false;
+  
 }
 
 // Called when the game starts or when spawned
 void AGodHand::BeginPlay() {
   Super::BeginPlay();
 
+  const FVector StartLocation = this->SpringArm->GetComponentLocation();
+  const FVector ShootDirection = this->SpringArm->GetForwardVector();
+  const FVector EndLocation = StartLocation + ShootDirection * 10000;
+  FHitResult HitResult;
+  if (GetWorld()->LineTraceSingleByObjectType(HitResult, StartLocation, EndLocation, ECC_Planet)) {
+    this->RotatingObject = Cast<AGravityPlanet>(HitResult.GetActor());
+  }
+
   if (APlayerController* PlayerController = Cast<APlayerController>(this->Controller)) {
     PlayerController->bEnableClickEvents = true;
+    //PlayerController->bShowMouseCursor = true;
   }
 
   // Setting up the Enhanced Player Input
   if (const APlayerController* PlayerController = Cast<APlayerController>(this->GetController())) {
-    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
-      UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer())) {
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer())) {
       Subsystem->AddMappingContext(this->MappingContext, 0);
     }
   }
@@ -100,7 +109,7 @@ void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 void AGodHand::Tick(float DeltaTime) {
   Super::Tick(DeltaTime);
   
-  this->MoveDecal();
+  this->MoveDecal();  
 }
 
 void AGodHand::GetRotatingWorldFormAllActors() {
@@ -127,6 +136,8 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
     EnhancedInputComponent->BindAction(this->RotatePlanetAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
     EnhancedInputComponent->BindAction(this->ZoomPlanetAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomPlanet);
     EnhancedInputComponent->BindAction(this->MoveHandMeshAction, ETriggerEvent::Triggered, this, &AGodHand::MoveCursor);
+    EnhancedInputComponent->BindAction(this->InteractAction, ETriggerEvent::Started, this, &AGodHand::Interact);
+    EnhancedInputComponent->BindAction(this->PossesAction, ETriggerEvent::Started, this, &AGodHand::Possess);
   }
 }
 
@@ -135,11 +146,15 @@ void AGodHand::RotatePlanet(const FInputActionValue& Value) {
   if (!this->RotatingObject) {
     return;
   }
-
   this->RotatingObject->RotatePlanet(Value);
 }
 
 void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
+  // Check if Object is Valid
+  if (!this->RotatingObject) {
+    return;
+  }
+  
   const FVector StartLocation = this->SpringArm->GetComponentLocation();
   const FVector ShootDirection = this->SpringArm->GetForwardVector();
   const FVector PlanetWorldLocation = this->RotatingObject->GetActorLocation() - this->GetActorLocation();
@@ -171,10 +186,73 @@ void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
 
 void AGodHand::MoveCursor(const FInputActionValue& Value) {
   this->MoveHandMesh();
-  //this->MoveDecal();
+}
+
+void AGodHand::Interact(const FInputActionValue& Value) {
+  
+  // Unselect the last selected Character
+  if (this->SelectedPlayer != nullptr) {
+    this->SelectedPlayer->bCanBePossessed = false;
+    this->SelectedPlayer->CharacterHUD->SetVisibility(false);
+    this->SelectedPlayer = nullptr;
+  }
+  
+  // Wandle die Bildschirmkoordinaten in Weltkoordinaten um
+  FVector2D MousePosition;
+  
+  bool bGotMousePosition = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(MousePosition.X, MousePosition.Y);
+
+  if (bGotMousePosition) {
+    FHitResult HitResult;
+    FVector CameraLocation;
+    FVector WorldDirection;
+    
+    UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
+    
+    // Save the if a there is a selected player
+    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_GravityCharacter) ){
+      
+      this->SelectedPlayer = Cast<AGravityCharacter>(HitResult.GetActor());
+    
+      this->SelectedPlayer->bCanBePossessed = true;
+      this->SelectedPlayer->CharacterHUD->SetVisibility(true);
+    }
+  }
+
+
+  
+  
+
+}
+
+void AGodHand::Possess(const FInputActionValue& Value) {
+  // Start the Posses process
+  if (this->SelectedPlayer) {
+    // Remove the GOdhand Mapping COntext
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Cast<APlayerController>(this->Controller)->GetLocalPlayer())) {
+      Subsystem->RemoveMappingContext(this->MappingContext);
+    }
+    // posses and Add the new Mapping Context 
+    this->Controller->Possess(this->SelectedPlayer);
+    this->SelectedPlayer->PreparePosses(this);
+    this->bIsPossessing = true;
+  }
+}
+
+void AGodHand::PreparePosses() {
+  // Adding the new MappingContext
+  if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Cast<APlayerController>(this->Controller)->GetLocalPlayer())) {
+    Subsystem->AddMappingContext(this->MappingContext, 0);
+  }
+  this->bIsPossessing = false;
 }
 
 void AGodHand::MoveHandMesh() const {
+  // Stop moving the hand mesh if player is possesing a character
+  if (bIsPossessing) {
+    return;
+  }
+  
   if (const UGameViewportClient* ViewportClient = GEngine->GameViewport) {
     // Get the Mouse Position from the Viewport
     FVector2D MousePosition;
@@ -198,10 +276,10 @@ void AGodHand::MoveHandMesh() const {
       const float StartPointFromFOVAndSpringArmForHeightForX = this->SpringArm->GetRelativeLocation().X + sin(this->SpringArm->GetRelativeRotation().Pitch * PI / 180) * HeightFromFOV / 2;
 
 
-      float MousePositionRatioX = (MousePosition.X - ViewportSize.X / 2.0f) / ViewportSize.X / 2.0f;
-      float MousePositionRatioY = (MousePosition.Y - ViewportSize.Y / 2.0f) / ViewportSize.Y / 2.0f;
+      const float MousePositionRatioX = (MousePosition.X - ViewportSize.X / 2.0f) / ViewportSize.X / 2.0f;
+      const float MousePositionRatioY = (MousePosition.Y - ViewportSize.Y / 2.0f) / ViewportSize.Y / 2.0f;
 
-      FRotator NewRotator = FRotator(MousePositionRatioY * 40.0f, MousePositionRatioX * 40.0f + 180, this->PlayerMesh->GetRelativeRotation().Roll);
+      const FRotator NewRotator = FRotator(MousePositionRatioY * 40.0f, MousePositionRatioX * 40.0f + 180, this->PlayerMesh->GetRelativeRotation().Roll);
       this->PlayerMesh->SetRelativeRotation(NewRotator);
 
       // Create and get the percentage of the mouse position from the Viewport width and height. 
@@ -221,8 +299,11 @@ void AGodHand::MoveHandMesh() const {
 }
 
 void AGodHand::MoveDecal() const {
-  FVector WorldMousePosition;
-
+  // Stop moving the hand mesh if player is possesing a character
+  if (bIsPossessing) {
+    return;
+  }
+  
   // Hole die aktuelle Mausposition auf dem Viewport
   FVector2D MousePosition;
   bool bGotMousePosition = UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(MousePosition.X, MousePosition.Y);
@@ -234,15 +315,9 @@ void AGodHand::MoveDecal() const {
     FVector WorldDirection;
     UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(MousePosition.X, MousePosition.Y, CameraLocation, WorldDirection);
 
-    // Scan for a Character to set the outliner
-    if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_GravityCharacter) ){
-      AGravityCharacter* Character = Cast<AGravityCharacter>(HitResult.GetActor());
-
-
-    }
-    
     // Get the Position for the decal on the Planet
     if (GetWorld()->LineTraceSingleByObjectType(HitResult, CameraLocation, CameraLocation + WorldDirection * 10000, ECC_Planet)) {
+      FVector WorldMousePosition;
       WorldMousePosition = HitResult.Location;
       
       this->SelectionOverlap->SetWorldLocation(WorldMousePosition);
