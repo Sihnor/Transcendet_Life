@@ -43,6 +43,22 @@ void AGravityPlanet::RotatePlanet(const FInputActionValue& Value) {
   const FQuat CombinedRotation = YawRotation * PitchRotation;
 
   this->AddActorWorldRotation(CombinedRotation.Rotator());
+
+  // Rotate all Characters on the planet
+  for (auto Character: this->CharactersAffectedOnGravity) {
+    // Rotiere um den Rotationspunkt
+    FVector CharacterLocation = Character->GetActorLocation();
+    FVector PlanetLocation = GetActorLocation();
+    FVector RotationOffset = CharacterLocation - PlanetLocation;
+
+    // Rotate Vector with the following Rotation
+    FVector RotatedOffset = CombinedRotation.Rotator().RotateVector(RotationOffset);
+
+    // Get new Character Position
+    FVector NewCharacterLocation = PlanetLocation + RotatedOffset;
+
+    Character->SetActorLocation(NewCharacterLocation);
+  }
 }
 
 // Called when the game starts or when spawned
