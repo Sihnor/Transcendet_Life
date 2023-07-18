@@ -18,7 +18,7 @@
 AGravityCharacter::AGravityCharacter() {
   // Setting up the Capsule Component
   this->CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsuleCompnent"));
-  this->CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
+  this->CapsuleComponent->InitCapsuleSize(55.0f, 96.0f);
   this->CapsuleComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
   this->CapsuleComponent->CanCharacterStepUpOn = ECB_No;
   this->CapsuleComponent->SetShouldUpdatePhysicsVolume(true);
@@ -27,43 +27,40 @@ AGravityCharacter::AGravityCharacter() {
   this->SetRootComponent(this->CapsuleComponent);
 
   // Setting up the CharacterMesh
-  this->CharacterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
-  this->CharacterMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -110.0f));
-  this->CharacterMesh->SetupAttachment(this->CapsuleComponent);
-  this->CharacterMesh->SetCollisionObjectType(ECC_GravityCharacter);
+  this->TPMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
+  this->TPMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -110.0f));
+  this->TPMesh->SetupAttachment(this->CapsuleComponent);
+  this->TPMesh->SetCollisionObjectType(ECC_GravityCharacter);
 
+  // Adding the ArrowComponent
   this->ArrowComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
   this->ArrowComponent->SetupAttachment(this->CapsuleComponent);
-
-  // Attach a SpringArm for the Camera
-  this->SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComp"));
-  this->SpringArm->SetRelativeRotation(FRotator(0, 0, 0));
-  this->SpringArm->TargetArmLength = 300;
-  this->SpringArm->bDoCollisionTest = false;
-  this->SpringArm->SetupAttachment(this->GetCapsuleComponent());
 
   // Create a CameraComponent	
   this->CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
   this->CameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f)); // Position the camera
-  this->CameraComponent->bUsePawnControlRotation = true;
   this->CameraComponent->bUsePawnControlRotation = false;
-  this->CameraComponent->SetupAttachment(this->SpringArm);
+  this->CameraComponent->SetupAttachment(this->GetCapsuleComponent());
+
+  // Setting up the First Person Mesh
+  this->FPMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+  this->FPMesh->SetRelativeLocation(FVector(-30.0f, 0.0f, -150.0f));
+  this->FPMesh->SetupAttachment(this->CameraComponent);
 
   // FIlling up the FloatingPawnMovement
   //this->CharacterMovement->NavAgentProps.AgentHeight = this->CapsuleComponent->GetScaledCapsuleHalfHeight();
   //this->CharacterMovement->NavAgentProps.AgentRadius = this->CapsuleComponent->GetScaledCapsuleRadius();
   this->CharacterMovement = CreateDefaultSubobject<UGravityMovementComponent>(TEXT("CharacterMovement"));
 
+  // Setting up the HUD
   this->CharacterHUD = CreateDefaultSubobject<UGravityCharacterHUDComponent>(TEXT("CharacterMenu"));
   this->CharacterHUD->SetRelativeLocation(FVector(0.0f, 0.f, 100.f)); // Position the camera
   this->CharacterHUD->SetVisibility(false);
   this->CharacterHUD->SetupAttachment(this->CapsuleComponent);
 
 
-  // Add the Event Functions
+  // Initialise Variables for Possesing
   this->bCanBePossessed = false;
-
-  // Initialise Variables
   this->GodHand = nullptr;
 }
 
@@ -124,7 +121,6 @@ void AGravityCharacter::Look(const FInputActionValue& Value) {
 
   if (this->GetController() != nullptr) {
     // add yaw and pitch input to controller
-    this->SpringArm->AddRelativeRotation(FRotator(LookAxisVector.Y * -1.0, 0.0f, 0.0f));
     this->AddActorLocalRotation(FRotator(0.0f, LookAxisVector.X, 0.0f));
   }
 }

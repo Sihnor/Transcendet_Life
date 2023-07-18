@@ -101,7 +101,7 @@ void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
   if (Character) {
     //Character->Outliner->SetVisibility(false);
     //Character->Outliner->SetActive(false);
-    Character->CharacterMesh->CustomDepthStencilValue = 1;
+    Character->TPMesh->CustomDepthStencilValue = 1;
   }
 }
 
