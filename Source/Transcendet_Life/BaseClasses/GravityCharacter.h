@@ -13,9 +13,6 @@ class UCapsuleComponent;
 class UFloatingPawnMovement;
 
 
-// On Click Event
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnClick, FKey, ButtonClicked);
-
 // Gravity character class which overrides gravity movement component
 UCLASS()
 class TRANSCENDET_LIFE_API AGravityCharacter : public APawn {
@@ -81,8 +78,7 @@ public:
 public:
   //////////////////////////////////////////////////////////////////////////// Events
   ///
-  UPROPERTY(BlueprintAssignable, Category="EventDospatcher")
-  FOnClick EventOnClick;
+
 
 public:
   //////////////////////////////////////////////////////////////////////////// Components
