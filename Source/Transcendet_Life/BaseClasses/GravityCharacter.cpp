@@ -9,10 +9,10 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/PostProcessComponent.h"
 #include "Components/WidgetComponent.h"
-#include "GameFramework/SpringArmComponent.h"
 #include "Transcendet_Life/Characters/GodHand.h"
 #include "Transcendet_Life/UI/GravityCharacterHUDComponent.h"
 
+#define ECC_Planet ECC_GameTraceChannel1
 #define ECC_GravityCharacter ECC_GameTraceChannel2
 
 AGravityCharacter::AGravityCharacter() {
@@ -30,7 +30,18 @@ AGravityCharacter::AGravityCharacter() {
   this->TPMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
   this->TPMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -110.0f));
   this->TPMesh->SetupAttachment(this->CapsuleComponent);
+  this->TPMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Ignore);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_Destructible, ECR_Block);
+  this->TPMesh->SetCollisionResponseToChannel(ECC_Planet, ECR_Block);
   this->TPMesh->SetCollisionObjectType(ECC_GravityCharacter);
+  
 
   // Adding the ArrowComponent
   this->ArrowComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
@@ -40,7 +51,7 @@ AGravityCharacter::AGravityCharacter() {
   this->CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
   this->CameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f)); // Position the camera
   this->CameraComponent->bUsePawnControlRotation = false;
-  this->CameraComponent->SetupAttachment(this->GetCapsuleComponent());
+  this->CameraComponent->SetupAttachment(this->CapsuleComponent);
 
   // Setting up the First Person Mesh
   this->FPMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
@@ -121,6 +132,7 @@ void AGravityCharacter::Look(const FInputActionValue& Value) {
 
   if (this->GetController() != nullptr) {
     // add yaw and pitch input to controller
+    this->CameraComponent->AddRelativeRotation(FRotator(LookAxisVector.Y * -1.0f, 0.0f, 0.0f));
     this->AddActorLocalRotation(FRotator(0.0f, LookAxisVector.X, 0.0f));
   }
 }
