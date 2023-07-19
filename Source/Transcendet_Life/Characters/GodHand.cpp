@@ -15,6 +15,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Transcendet_Life/BaseClasses/GravityCharacter.h"
 #include "Transcendet_Life/BaseClasses/GravityPlanet.h"
+#include "WorldPartition/ContentBundle/ContentBundleLog.h"
 
 
 // Sets default values
@@ -101,7 +102,7 @@ void AGodHand::OnDecalEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
   if (Character) {
     //Character->Outliner->SetVisibility(false);
     //Character->Outliner->SetActive(false);
-    Character->CharacterMesh->CustomDepthStencilValue = 1;
+    Character->TPMesh->CustomDepthStencilValue = 1;
   }
 }
 
@@ -133,7 +134,7 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
   Super::SetupPlayerInputComponent(PlayerInputComponent);
 
   if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
-    EnhancedInputComponent->BindAction(this->RotatePlanetAction, ETriggerEvent::Triggered, this, &AGodHand::RotatePlanet);
+    EnhancedInputComponent->BindAction(this->RotatePlanetAction, ETriggerEvent::Triggered, this, &AGodHand::RotateAroundPlanet);
     EnhancedInputComponent->BindAction(this->ZoomPlanetAction, ETriggerEvent::Triggered, this, &AGodHand::ZoomPlanet);
     EnhancedInputComponent->BindAction(this->MoveHandMeshAction, ETriggerEvent::Triggered, this, &AGodHand::MoveCursor);
     EnhancedInputComponent->BindAction(this->InteractAction, ETriggerEvent::Started, this, &AGodHand::Interact);
@@ -141,11 +142,47 @@ void AGodHand::SetupPlayerInputComponent(class UInputComponent* PlayerInputCompo
   }
 }
 
-void AGodHand::RotatePlanet(const FInputActionValue& Value) {
+void AGodHand::RotateAroundPlanet(const FInputActionValue& Value) {
   // Check if Object is Valid
   if (!this->RotatingObject) {
     return;
   }
+
+  // Convert Parameter in a 2D Vector
+  const FVector CurrentValue = Value.Get<FVector>();
+  
+  constexpr float RotationSpeed = 0.5f;
+  
+  const float RotationDeltaYaw = CurrentValue.Z * RotationSpeed * GetWorld()->GetDeltaSeconds();
+  const float RotationDeltaPitch = (CurrentValue.Y * -1) * RotationSpeed * GetWorld()->GetDeltaSeconds();
+  const float RotationDeltaRoll = CurrentValue.X * RotationSpeed * GetWorld()->GetDeltaSeconds();
+
+  // Calculate the Quaternion for the Rotations based on the Deltas around the Vector of the actor
+  const FQuat YawRotation = FQuat(this->GetActorUpVector(), RotationDeltaYaw);
+  const FQuat PitchRotation = FQuat(this->GetActorRightVector(), RotationDeltaPitch);
+  const FQuat RollRotation = FQuat(this->GetActorForwardVector(), RotationDeltaRoll);
+
+  // Combine both Quaternion
+  const FQuat CombinedRotation = RollRotation * YawRotation * PitchRotation;
+
+  // Set the Rotation of the character
+  this->AddActorWorldRotation(CombinedRotation);
+
+  // Rotiere um den Rotationspunkt
+  FVector CharacterLocation = this->GetActorLocation();
+  FVector PlanetLocation = this->RotatingObject->GetActorLocation();
+  FVector RotationOffset = CharacterLocation - PlanetLocation;
+
+  // Rotate Vector with the following Rotation
+  FVector RotatedOffset = CombinedRotation.RotateVector(RotationOffset);
+  FVector NewCharacterLocation = PlanetLocation + RotatedOffset;
+
+  // Set new Location based on Rotated Vector from the center of the planet 
+  this->SetActorLocation(NewCharacterLocation);
+
+  
+  return;
+  // Old FUnction from rotating of the planet
   this->RotatingObject->RotatePlanet(Value);
 }
 
@@ -171,7 +208,7 @@ void AGodHand::ZoomPlanet(const FInputActionValue& Value) {
     }
 
     // Stop at a specific distance
-    if (constexpr float MaxZoomDistance = 2500.0f; Distance - Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() < 0) {
+    if (constexpr float MaxZoomDistance = 2500000.0f; Distance - Value.Get<float>() * ZoomScale > MaxZoomDistance && Value.Get<float>() < 0) {
       return;
     }
 

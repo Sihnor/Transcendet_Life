@@ -42,7 +42,6 @@ private:
   UPROPERTY()
   TArray<AGravityCharacter*> CharactersAffectedOnGravity;
 
-
 private:
   float Gravitation = -1.0f;
 

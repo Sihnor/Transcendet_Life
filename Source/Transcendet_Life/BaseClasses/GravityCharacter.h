@@ -13,9 +13,6 @@ class UCapsuleComponent;
 class UFloatingPawnMovement;
 
 
-// On Click Event
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnClick, FKey, ButtonClicked);
-
 // Gravity character class which overrides gravity movement component
 UCLASS()
 class TRANSCENDET_LIFE_API AGravityCharacter : public APawn {
@@ -81,8 +78,7 @@ public:
 public:
   //////////////////////////////////////////////////////////////////////////// Events
   ///
-  UPROPERTY(BlueprintAssignable, Category="EventDospatcher")
-  FOnClick EventOnClick;
+
 
 public:
   //////////////////////////////////////////////////////////////////////////// Components
@@ -93,15 +89,15 @@ public:
 
   /** The main skeletal mesh associated with this Character (optional sub-object). */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Character, meta=(AllowPrivateAccess = "true"))
-  USkeletalMeshComponent* CharacterMesh;
+  USkeletalMeshComponent* TPMesh;
+
+  /** The main skeletal mesh associated with this Character (optional sub-object). */
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Character, meta=(AllowPrivateAccess = "true"))
+  USkeletalMeshComponent* FPMesh;
 
   /** Component shown in the editor only to indicate character facing */
   UPROPERTY()
   UArrowComponent* ArrowComponent;
-
-  /** Camera boom positioning the camera behind the character */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera, meta = (AllowPrivateAccess = "true"))
-  USpringArmComponent* SpringArm;
 
   /** Camera boom positioning the camera behind the character */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera, meta = (AllowPrivateAccess = "true"))
@@ -121,7 +117,7 @@ public:
   FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
 
   /** Returns Mesh sub object **/
-  FORCEINLINE class USkeletalMeshComponent* GetCharacterMesh() const { return this->CharacterMesh; }
+  FORCEINLINE class USkeletalMeshComponent* GetCharacterMesh() const { return this->TPMesh; }
 
   /** Returns Camera sub object **/
   FORCEINLINE class UCameraComponent* GetCamera() const { return this->CameraComponent; }
