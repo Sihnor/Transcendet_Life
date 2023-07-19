@@ -55,13 +55,10 @@ void AGravityPlanet::RotatePlanet(const FInputActionValue& Value) {
     FVector RotationOffset = CharacterLocation - PlanetLocation;
 
     // Rotate Vector with the following Rotation
-    //FVector RotatedOffset = CombinedRotation.Rotator().RotateVector(RotationOffset);
-    FVector RotatedOffset = CombinedRotation.RotateVector(RotationOffset);
-    FVector NewCharacterLocation = PlanetLocation + RotatedOffset;
+    FVector RotatedOffset = CombinedRotation.Rotator().RotateVector(RotationOffset);
 
-    
-    //const float CharYawRotation = Character->GetActorRotation().Yaw;
-    UE_LOG(LogTemp, Error, TEXT("SECOND: %f"), Character->CapsuleComponent->GetComponentRotation().Yaw)
+    // Get new Character Position
+    FVector NewCharacterLocation = PlanetLocation + RotatedOffset;
 
     Character->SetActorLocation(NewCharacterLocation);
   }
