@@ -19,3 +19,5 @@ Platforms
 # The Rider aut generated folder
 .idea
 Plugins/Developer/RiderLink
+
+.vsconfig
