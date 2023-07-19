@@ -6,6 +6,7 @@
 #include "GravityCharacter.h"
 #include "GravityMovementComponent.h"
 #include "InputActionValue.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -28,6 +29,8 @@ AGravityPlanet::AGravityPlanet() {
 }
 
 void AGravityPlanet::RotatePlanet(const FInputActionValue& Value) {
+  return;
+  
   // Convert Parameter in a 2D Vector
   const FVector2D CurrentValue = Value.Get<FVector2D>();
 
@@ -43,6 +46,25 @@ void AGravityPlanet::RotatePlanet(const FInputActionValue& Value) {
   const FQuat CombinedRotation = YawRotation * PitchRotation;
 
   this->AddActorWorldRotation(CombinedRotation.Rotator());
+
+  // Rotate all Characters on the planet
+  for (auto Character: this->CharactersAffectedOnGravity) {
+    // Rotiere um den Rotationspunkt
+    FVector CharacterLocation = Character->GetActorLocation();
+    FVector PlanetLocation = GetActorLocation();
+    FVector RotationOffset = CharacterLocation - PlanetLocation;
+
+    // Rotate Vector with the following Rotation
+    //FVector RotatedOffset = CombinedRotation.Rotator().RotateVector(RotationOffset);
+    FVector RotatedOffset = CombinedRotation.RotateVector(RotationOffset);
+    FVector NewCharacterLocation = PlanetLocation + RotatedOffset;
+
+    
+    //const float CharYawRotation = Character->GetActorRotation().Yaw;
+    UE_LOG(LogTemp, Error, TEXT("SECOND: %f"), Character->CapsuleComponent->GetComponentRotation().Yaw)
+
+    Character->SetActorLocation(NewCharacterLocation);
+  }
 }
 
 // Called when the game starts or when spawned
@@ -60,8 +82,6 @@ void AGravityPlanet::BeginPlay() {
     //UE_LOG(LogTemp, Warning, TEXT("X:%f Y=%f Z=%f"), this->GetActorLocation().X, this->GetActorLocation().Y, this->GetActorLocation().Z);
     Character->GetGravityMovementComponent()->SetCharacterHasGravity(true);
   }
-  
-
 }
 
 void AGravityPlanet::Tick(float DeltaSeconds) {
