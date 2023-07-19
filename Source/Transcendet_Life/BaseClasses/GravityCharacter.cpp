@@ -57,6 +57,7 @@ AGravityCharacter::AGravityCharacter() {
   this->FPMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
   this->FPMesh->SetRelativeLocation(FVector(-30.0f, 0.0f, -150.0f));
   this->FPMesh->SetupAttachment(this->CameraComponent);
+  this->FPMesh->SetVisibility(false);
 
   // FIlling up the FloatingPawnMovement
   //this->CharacterMovement->NavAgentProps.AgentHeight = this->CapsuleComponent->GetScaledCapsuleHalfHeight();
@@ -124,6 +125,10 @@ void AGravityCharacter::PreparePosses(AGodHand* God) {
   if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Cast<APlayerController>(this->Controller)->GetLocalPlayer())) {
     Subsystem->AddMappingContext(this->DefaultMappingContext, 0);
   }
+
+  // Switch from THird to first person view
+  this->TPMesh->SetVisibility(false);
+  this->FPMesh->SetVisibility(true);
 }
 
 void AGravityCharacter::Look(const FInputActionValue& Value) {
@@ -132,7 +137,14 @@ void AGravityCharacter::Look(const FInputActionValue& Value) {
 
   if (this->GetController() != nullptr) {
     // add yaw and pitch input to controller
-    this->CameraComponent->AddRelativeRotation(FRotator(LookAxisVector.Y * -1.0f, 0.0f, 0.0f));
+    float YawValue = LookAxisVector.Y * -1.0f;
+    const float CheckBoarder = YawValue + this->CameraComponent->GetRelativeRotation().Pitch;
+    
+    if (CheckBoarder > 89.0f || CheckBoarder < -89.0f) {
+      YawValue = 0.0f;
+    }
+    
+    this->CameraComponent->AddRelativeRotation(FRotator(YawValue, 0.0f, 0.0f));
     this->AddActorLocalRotation(FRotator(0.0f, LookAxisVector.X, 0.0f));
   }
 }
@@ -155,6 +167,10 @@ void AGravityCharacter::UnPosses(const FInputActionValue& Value) {
   this->Controller->Possess(this->GodHand);
   this->GodHand->PreparePosses();
 
+  // Switch from first to third person view
+  this->TPMesh->SetVisibility(true);
+  this->FPMesh->SetVisibility(false);
+  
   this->GodHand = nullptr;
 }
 
