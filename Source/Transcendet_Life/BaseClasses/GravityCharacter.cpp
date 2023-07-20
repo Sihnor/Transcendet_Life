@@ -80,6 +80,15 @@ UGravityMovementComponent* AGravityCharacter::GetGravityMovementComponent() {
   return this->CharacterMovement;
 }
 
+void AGravityCharacter::SetHasTool(const bool bHasNewTool) {
+  this->bHasTool = bHasNewTool;
+}
+
+bool AGravityCharacter::GetHasTool() const {
+  return this->bHasTool;
+}
+
+
 // Called when the game starts or when spawned
 void AGravityCharacter::BeginPlay() {
   Super::BeginPlay();
@@ -110,7 +119,9 @@ void AGravityCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
     EnhancedInputComponent->BindAction(this->LookCharacterAction, ETriggerEvent::Triggered, this, &AGravityCharacter::Look);
 
     // Move
+    EnhancedInputComponent->BindAction(this->MoveCharacterAction, ETriggerEvent::Started, this, &AGravityCharacter::StartMove);
     EnhancedInputComponent->BindAction(this->MoveCharacterAction, ETriggerEvent::Triggered, this, &AGravityCharacter::Move);
+    EnhancedInputComponent->BindAction(this->MoveCharacterAction, ETriggerEvent::Completed, this, &AGravityCharacter::StopMove);
 
     // UnPosses
     EnhancedInputComponent->BindAction(this->PossesAction, ETriggerEvent::Started, this, &AGravityCharacter::UnPosses);
@@ -154,9 +165,16 @@ void AGravityCharacter::Move(const FInputActionValue& Value) {
   const FVector2D MovementVector = Value.Get<FVector2D>();
   if (this->GetController() != nullptr) {
     // add movement
-    this->AddMovementInput(this->GetCharacterMesh()->GetForwardVector(), -1.0f * MovementVector.X);
-    this->AddMovementInput(this->GetCharacterMesh()->GetRightVector(), MovementVector.Y);
+    this->AddMovementInput(this->GetTPMesh()->GetForwardVector(), -1.0f * MovementVector.X);
+    this->AddMovementInput(this->GetTPMesh()->GetRightVector(), MovementVector.Y);
   }
+}
+
+void AGravityCharacter::StartMove(const FInputActionValue& Value) {
+  this->GetGravityMovementComponent()->StartMoving();
+}
+void AGravityCharacter::StopMove(const FInputActionValue& Value) {
+  this->GetGravityMovementComponent()->StopMoving();
 }
 
 void AGravityCharacter::UnPosses(const FInputActionValue& Value) {
@@ -178,4 +196,6 @@ void AGravityCharacter::Jump(const FInputActionValue& Value) {
   this->CharacterMovement->StartJumping();
 }
 
-void AGravityCharacter::StopJumping(const FInputActionValue& Value) { }
+void AGravityCharacter::StopJumping(const FInputActionValue& Value) {
+  this->CharacterMovement->StopJumping();
+}

@@ -35,25 +35,7 @@ public:
 private:
   //////////////////////////////////////////////////////////////////////////// Components
 
-  /** Pawn mesh: 1st person view (arms; seen only by self) */
-  UPROPERTY(VisibleDefaultsOnly, Category=Mesh)
-  class USkeletalMeshComponent* Mesh1P;
-
 public:
-  // Variable if the Character has a tool
-  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Tool)
-  bool bHasTool;
 
-  // Setter to set the bool
-  UFUNCTION(BlueprintCallable, Category = Weapon)
-  void SetHasTool(const bool bHasNewTool);
-
-  // Getter for the bool 
-  UFUNCTION(BlueprintCallable, Category = Weapon)
-  bool GetHasTool() const;
-
-public:
-  // Getter function for the FP Mesh
-  USkeletalMeshComponent* GetMesh1P() const { return this->Mesh1P; }
 
 };

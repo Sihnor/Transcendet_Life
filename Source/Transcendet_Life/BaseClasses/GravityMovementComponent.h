@@ -22,6 +22,8 @@ class TRANSCENDET_LIFE_API UGravityMovementComponent : public UFloatingPawnMovem
 public:
 	void StartJumping();
 	void StopJumping();
+	void StartMoving();
+	void StopMoving();
 	bool CanJump();
 	
 	
@@ -35,13 +37,18 @@ public:
 	FVector GetPlanetCenter();
 	bool GetCharacterHasGravity();
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool IsJumping();
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsMoving();
 
-private:
+public:
 	FVector PlanetCenter = FVector::Zero();
 
 	bool bIsJumping = false;
 	bool bHasGravity = false;
+	bool bIsMoving = false;
 	float JumpHeight = 100.0f;
 	float StartJumpHeight = 0.0f;
+	
 };

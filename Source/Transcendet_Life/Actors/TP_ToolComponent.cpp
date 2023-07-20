@@ -5,7 +5,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Transcendet_Life/Characters/Professions/Lumberjack/Lumberjack.h"
+#include "Transcendet_Life/BaseClasses/GravityCharacter.h"
 
 
 // Sets default values for this component's properties
@@ -23,7 +23,7 @@ void UTP_ToolComponent::BeginPlay()
   
 }
 
-void UTP_ToolComponent::AttachTool(AProfession* TargetCharacter) {
+void UTP_ToolComponent::AttachTool(AGravityCharacter* TargetCharacter) {
   this->Character = TargetCharacter;
   if (this->Character == nullptr) {
     return;
@@ -31,7 +31,7 @@ void UTP_ToolComponent::AttachTool(AProfession* TargetCharacter) {
 
   // Attach the weapon to the first person Character
   const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
-  AttachToComponent(this->Character->GetMesh1P(), AttachmentRules, FName(TEXT("GripPoint")));
+  AttachToComponent(this->Character->GetFPMesh(), AttachmentRules, FName(TEXT("GripPoint")));
 
   // switch bHasAxe for the character
   this->Character->SetHasTool(true);
