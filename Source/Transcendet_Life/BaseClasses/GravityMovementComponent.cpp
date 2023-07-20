@@ -57,6 +57,13 @@ void UGravityMovementComponent::StopJumping() {
   this->bIsJumping = false;
 }
 
+void UGravityMovementComponent::StartMoving() {
+  this->bIsMoving = true;
+}
+void UGravityMovementComponent::StopMoving() {
+  this->bIsMoving =  false;
+}
+
 void UGravityMovementComponent::SetPlanetCenter(const FVector& Center) {
   this->PlanetCenter = Center;
 }
@@ -73,4 +80,8 @@ bool UGravityMovementComponent::GetCharacterHasGravity() {
 
 bool UGravityMovementComponent::IsJumping() {
   return  this->bIsJumping;
+}
+
+bool UGravityMovementComponent::IsMoving() {
+  return this->bIsMoving;
 }

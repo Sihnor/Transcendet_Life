@@ -55,6 +55,12 @@ protected:
   /** Called for the Move Input */
   void Move(const FInputActionValue& Value);
 
+  /** Called for the Move Input */
+  void StartMove(const FInputActionValue& Value);
+
+  /** Called for the Move Input */
+  void StopMove(const FInputActionValue& Value);
+
   /** Called for the Look Input */
   void Look(const FInputActionValue& Value);
 
@@ -117,7 +123,10 @@ public:
   FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
 
   /** Returns Mesh sub object **/
-  FORCEINLINE class USkeletalMeshComponent* GetCharacterMesh() const { return this->TPMesh; }
+  FORCEINLINE class USkeletalMeshComponent* GetFPMesh() const { return this->FPMesh; }
+
+  /** Returns Mesh sub object **/
+  FORCEINLINE class USkeletalMeshComponent* GetTPMesh() const { return this->TPMesh; }
 
   /** Returns Camera sub object **/
   FORCEINLINE class UCameraComponent* GetCamera() const { return this->CameraComponent; }
@@ -126,10 +135,23 @@ public:
   UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Character")
   UGravityMovementComponent* GetGravityMovementComponent();
 
+  // Setter to set the bool
+  UFUNCTION(BlueprintCallable, Category = Weapon)
+  void SetHasTool(const bool bHasNewTool);
+
+  // Getter for the bool 
+  UFUNCTION(BlueprintCallable, Category = Weapon)
+  bool GetHasTool() const;
+
 public:
   class AGodHand* GodHand;
 
   UPROPERTY(EditAnywhere, BlueprintReadWrite)
   bool bCanBePossessed;
+
+  /** Bool for AnimBP to switch to another animation set */
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Tool)
+  bool bHasTool;
+
 
 };

@@ -37,7 +37,7 @@ public:
 public:
   // Attached the actor to a Lumberjack
   UFUNCTION(BlueprintCallable, Category="Tool")
-  void AttachTool(class AProfession* TargetCharacter);
+  void AttachTool(class AGravityCharacter* TargetCharacter);
 
   // Use the tool
   UFUNCTION(BlueprintCallable, Category="Tool")
@@ -49,7 +49,7 @@ protected:
 
 private:
   // The Character holding this tool
-  AProfession* Character;
+  class AGravityCharacter* Character;
   
 };
 
